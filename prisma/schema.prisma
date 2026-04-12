@@ -1,0 +1,72 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+model Document {
+  id          String @id @default(cuid())
+  title       String
+  serviceType String @default("sotongmun")
+
+  originalFileUrl  String
+  originalFileName String
+
+  originalContent String @db.Text
+  originalHtml    String @db.Text
+
+  explanationContent String? @db.Text
+
+  translations Translation[]
+  embeddings   Embedding[]
+  chatMessages ChatMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceType])
+}
+
+model Translation {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  langCode String
+  content  String @db.Text
+  html     String @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@unique([documentId, langCode])
+  @@index([documentId, langCode])
+}
+
+model Embedding {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  content String                    @db.Text
+  vector  Unsupported("vector(1536)")
+
+  @@index([documentId])
+}
+
+model ChatMessage {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  role     String
+  content  String @db.Text
+  langCode String
+
+  createdAt DateTime @default(now())
+
+  @@index([documentId])
+}
