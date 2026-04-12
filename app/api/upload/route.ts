@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { put } from "@vercel/blob";
 import { prisma } from "@/lib/db";
 import { parseHwpx } from "@/lib/hwpx-parser";
 import { parsePdf } from "@/lib/pdf-parser";
 import { storeEmbeddings } from "@/lib/embeddings";
+import { preTranslateAll } from "@/lib/translator";
 import { getViewUrl } from "@/lib/utils";
 
 export const maxDuration = 300;
@@ -98,8 +100,13 @@ export async function POST(req: NextRequest) {
         ? `${parsed.text}\n\n${explanationContent}`
         : parsed.text;
 
-    // Run embedding in background — don't await to avoid timeout
-    storeEmbeddings(document.id, embeddingSource).catch(console.error);
+    // 응답 후 백그라운드에서 실행 (after = waitUntil)
+    after(async () => {
+      await Promise.allSettled([
+        storeEmbeddings(document.id, embeddingSource),
+        preTranslateAll(document.id, parsed.html),
+      ]);
+    });
 
     return NextResponse.json({
       success: true,

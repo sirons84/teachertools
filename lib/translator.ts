@@ -1,4 +1,5 @@
 import { getOpenAI } from "./openai";
+import { prisma } from "./db";
 import { SUPPORTED_LANGUAGES } from "@/constants/languages";
 
 const TRANSLATION_SYSTEM_PROMPT = `당신은 한국 초등학교/중학교 가정통신문 전문 번역가입니다.
@@ -65,6 +66,27 @@ export async function translateText(
   });
 
   return response.choices[0]?.message?.content ?? text;
+}
+
+// 업로드 시 모든 언어 미리 번역 (병렬)
+export async function preTranslateAll(documentId: string, html: string): Promise<void> {
+  const targets = SUPPORTED_LANGUAGES.filter((l) => l.code !== "ko");
+
+  await Promise.allSettled(
+    targets.map(async (lang) => {
+      // 이미 캐시된 언어는 건너뜀
+      const existing = await prisma.translation.findUnique({
+        where: { documentId_langCode: { documentId, langCode: lang.code } },
+        select: { id: true },
+      });
+      if (existing) return;
+
+      const { content, html: translatedHtml } = await translateDocument(html, lang.code);
+      await prisma.translation.create({
+        data: { documentId, langCode: lang.code, content, html: translatedHtml },
+      });
+    })
+  );
 }
 
 export async function translateToKorean(text: string, sourceLangCode: string): Promise<string> {
