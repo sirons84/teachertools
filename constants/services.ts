@@ -4,6 +4,7 @@ export interface ServiceItem {
   description: string;
   icon: string;
   href: string;
+  external?: boolean;
   status: "active" | "coming-soon";
   color: string;
 }
@@ -20,29 +21,31 @@ export const SERVICES: ServiceItem[] = [
     color: "blue",
   },
   {
+    id: "economy-class",
+    title: "단단반 경제교실",
+    description: "학생들이 직접 경험하는 경제 교육 플랫폼입니다. 실생활 경제 개념을 재미있게 배울 수 있습니다.",
+    icon: "💰",
+    href: "https://tax-ashy.vercel.app/",
+    external: true,
+    status: "active",
+    color: "green",
+  },
+  {
+    id: "question-class",
+    title: "질문있는 교실",
+    description: "학생들이 자유롭게 질문하고 함께 답을 찾아가는 참여형 수업 도구입니다.",
+    icon: "🙋",
+    href: "https://ulsan.it/",
+    external: true,
+    status: "active",
+    color: "purple",
+  },
+  {
     id: "report-helper",
     title: "생활기록부 도우미",
     description: "AI가 학생 특성에 맞는 생활기록부 문구를 추천합니다.",
     icon: "📝",
     href: "/services/report-helper",
-    status: "coming-soon",
-    color: "green",
-  },
-  {
-    id: "quiz-maker",
-    title: "AI 문제 출제기",
-    description: "교과서 내용을 바탕으로 AI가 다양한 형태의 문제를 자동 출제합니다.",
-    icon: "🧩",
-    href: "/services/quiz-maker",
-    status: "coming-soon",
-    color: "purple",
-  },
-  {
-    id: "lesson-planner",
-    title: "수업계획서 도우미",
-    description: "교육과정에 맞는 수업계획서를 AI와 함께 손쉽게 작성합니다.",
-    icon: "📅",
-    href: "/services/lesson-planner",
     status: "coming-soon",
     color: "orange",
   },

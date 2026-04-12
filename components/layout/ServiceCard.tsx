@@ -1,11 +1,11 @@
 import Link from "next/link";
 import type { ServiceItem } from "@/constants/services";
 
-const COLOR_MAP: Record<string, { card: string; badge: string; btn: string }> = {
-  blue:   { card: "border-blue-200 hover:border-blue-400 hover:shadow-blue-100",   badge: "bg-blue-100 text-blue-700",   btn: "bg-blue-600 hover:bg-blue-700 text-white" },
-  green:  { card: "border-green-200 hover:border-green-400 hover:shadow-green-100", badge: "bg-green-100 text-green-700", btn: "bg-green-600 hover:bg-green-700 text-white" },
-  purple: { card: "border-purple-200",                                              badge: "bg-purple-100 text-purple-700", btn: "" },
-  orange: { card: "border-orange-200",                                              badge: "bg-orange-100 text-orange-700", btn: "" },
+const COLOR_MAP: Record<string, { card: string; btn: string }> = {
+  blue:   { card: "border-blue-200 hover:border-blue-400 hover:shadow-blue-100",   btn: "bg-blue-600 hover:bg-blue-700 text-white" },
+  green:  { card: "border-green-200 hover:border-green-400 hover:shadow-green-100", btn: "bg-green-600 hover:bg-green-700 text-white" },
+  purple: { card: "border-purple-200 hover:border-purple-400 hover:shadow-purple-100", btn: "bg-purple-600 hover:bg-purple-700 text-white" },
+  orange: { card: "border-orange-200", btn: "" },
 };
 
 interface Props {
@@ -21,12 +21,20 @@ export default function ServiceCard({ service }: Props) {
       className={`
         relative bg-white rounded-2xl border-2 p-6 flex flex-col gap-3 h-full
         transition-all duration-200
-        ${isActive ? `${colors.card} shadow-sm hover:shadow-lg cursor-pointer` : "border-gray-200 opacity-60 cursor-not-allowed"}
+        ${isActive
+          ? `${colors.card} shadow-sm hover:shadow-lg cursor-pointer`
+          : "border-gray-200 opacity-60 cursor-not-allowed"}
       `}
     >
       {!isActive && (
         <span className="absolute top-4 right-4 text-xs font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
           준비중
+        </span>
+      )}
+
+      {service.external && (
+        <span className="absolute top-4 right-4 text-xs font-semibold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">
+          외부 서비스 ↗
         </span>
       )}
 
@@ -46,7 +54,7 @@ export default function ServiceCard({ service }: Props) {
           <span
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${colors.btn}`}
           >
-            시작하기 <span>→</span>
+            {service.external ? "바로가기 ↗" : "시작하기 →"}
           </span>
         </div>
       )}
@@ -54,7 +62,15 @@ export default function ServiceCard({ service }: Props) {
   );
 
   if (isActive) {
-    return <Link href={service.href} className="block h-full">{cardContent}</Link>;
+    return (
+      <Link
+        href={service.href}
+        className="block h-full"
+        {...(service.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      >
+        {cardContent}
+      </Link>
+    );
   }
 
   return <div className="h-full">{cardContent}</div>;
