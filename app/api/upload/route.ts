@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     const blob = await put(
       `sotongmun/${Date.now()}-${newsletterFile.name}`,
       fileBuffer,
-      { access: "public" }
+      { access: "private" }
     );
 
     // Parse file
