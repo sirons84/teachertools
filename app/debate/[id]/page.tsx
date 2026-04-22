@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import DebateChat from "@/components/debate/DebateChat";
@@ -19,18 +21,47 @@ interface SessionData {
 type StageStatus = "done" | "active" | "waiting" | "approval-needed";
 
 const STAGE_META = [
-  { key: "A1", label: "① 학습문제 제안", icon: "📋", readyStage: "A1_READY", doneStages: ["A2_READY", "A2_DONE", "A3_READY", "A3_RUNNING", "A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"] },
-  { key: "A2", label: "② 지도안·평가지", icon: "📝", readyStage: "A2_READY", doneStages: ["A2_DONE", "A3_READY", "A3_RUNNING", "A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"] },
-  { key: "A3", label: "③ 토론 시뮬레이션", icon: "💬", readyStage: "A3_READY", doneStages: ["A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"] },
-  { key: "A4", label: "④ 과정 관찰", icon: "🔍", readyStage: "A4_READY", doneStages: ["A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"] },
-  { key: "A5", label: "⑤ 평가 판정", icon: "📊", readyStage: "A5_READY", doneStages: ["A6_READY", "A6_DONE", "COMPLETED"] },
-  { key: "A6", label: "⑥ 생기부 초안", icon: "📄", readyStage: "A6_READY", doneStages: ["A6_DONE", "COMPLETED"] },
+  {
+    key: "A1", label: "① 학습문제 제안", icon: "📋",
+    activeStages: ["A1_READY"],
+    approvalStage: "A1_DONE_WAIT_APPROVAL" as SessionStage,
+    doneStages: ["A2_READY", "A2_DONE", "A3_READY", "A3_RUNNING", "A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"],
+  },
+  {
+    key: "A2", label: "② 지도안·평가지", icon: "📝",
+    activeStages: ["A2_READY"],
+    doneStages: ["A2_DONE", "A3_READY", "A3_RUNNING", "A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"],
+  },
+  {
+    key: "A3", label: "③ AI 토론 에이전트", icon: "💬",
+    // A2_DONE·A3_READY: 설정 폼 표시 / A3_RUNNING: 채팅 표시
+    activeStages: ["A2_DONE", "A3_READY", "A3_RUNNING"],
+    doneStages: ["A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"],
+  },
+  {
+    key: "A4", label: "④ 과정 관찰", icon: "🔍",
+    // A3_DONE: 관찰 분석 버튼 표시
+    activeStages: ["A3_DONE", "A4_READY"],
+    doneStages: ["A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"],
+  },
+  {
+    key: "A5", label: "⑤ 평가 판정", icon: "📊",
+    // A4_DONE: 평가 판정 버튼 표시
+    activeStages: ["A4_DONE", "A5_READY"],
+    approvalStage: "A5_DONE_WAIT_APPROVAL" as SessionStage,
+    doneStages: ["A6_READY", "A6_DONE", "COMPLETED"],
+  },
+  {
+    key: "A6", label: "⑥ 생기부 초안", icon: "📄",
+    activeStages: ["A6_READY"],
+    doneStages: ["A6_DONE", "COMPLETED"],
+  },
 ];
 
 function getStageStatus(meta: typeof STAGE_META[0], currentStage: SessionStage): StageStatus {
   if (meta.doneStages.includes(currentStage)) return "done";
-  if (currentStage === meta.readyStage || currentStage === `${meta.key}_RUNNING`) return "active";
-  if (currentStage === `${meta.key}_DONE_WAIT_APPROVAL`) return "approval-needed";
+  if (meta.activeStages.includes(currentStage)) return "active";
+  if ("approvalStage" in meta && currentStage === meta.approvalStage) return "approval-needed";
   return "waiting";
 }
 
@@ -52,7 +83,7 @@ export default function DebateSessionPage() {
 
   useEffect(() => { fetchSession(); }, [fetchSession]);
 
-  async function runStage(opts?: { chosenProblem?: string; level?: string; studentPosition?: string }) {
+  async function runStage(opts?: Record<string, string>) {
     setRunningStage("running");
     setError("");
     try {
@@ -254,7 +285,6 @@ function StageContent({
   if (status === "waiting") {
     return <p className="text-gray-400 text-sm">이전 단계가 완료되면 실행할 수 있습니다.</p>;
   }
-
   if (stageKey === "A1") return <A1Content status={status} state={state} stage={stage} isRunning={isRunning} onRun={onRun} onApprove={onApprove} onRerun={onRerunA1} />;
   if (stageKey === "A2") return <A2Content status={status} state={state} isRunning={isRunning} onRun={onRun} />;
   if (stageKey === "A3") return <A3Content status={status} state={state} stage={stage} isRunning={isRunning} debateConfig={debateConfig} setDebateConfig={setDebateConfig} onRun={onRun} onTurnAdded={onTurnAdded} onFinishDebate={onFinishDebate} sessionId={sessionId} />;
@@ -276,6 +306,7 @@ function RunButton({ onClick, isRunning, label = "▶ 실행" }: { onClick: () =
   );
 }
 
+// ── A1 ──────────────────────────────────────────────────────────────────────
 function A1Content({ status, state, stage, isRunning, onRun, onApprove, onRerun }: {
   status: StageStatus; state: DebateSessionState; stage: SessionStage; isRunning: boolean;
   onRun: (o?: Record<string, string>) => void; onApprove: (p?: string) => void; onRerun: () => void;
@@ -285,7 +316,6 @@ function A1Content({ status, state, stage, isRunning, onRun, onApprove, onRerun 
   if (status === "active" && stage === "A1_READY") {
     return <RunButton onClick={() => onRun()} isRunning={isRunning} label="▶ 학습문제 3개 생성" />;
   }
-
   if (!state.A1?.problems?.length) return null;
 
   return (
@@ -325,14 +355,13 @@ function A1Content({ status, state, stage, isRunning, onRun, onApprove, onRerun 
   );
 }
 
+// ── A2 ──────────────────────────────────────────────────────────────────────
 function A2Content({ status, state, isRunning, onRun }: {
   status: StageStatus; state: DebateSessionState; isRunning: boolean; onRun: (o?: Record<string, string>) => void;
 }) {
-  const [showPlan, setShowPlan] = useState(false);
+  const [showPlan, setShowPlan] = useState(true);
 
-  if (status === "active") {
-    return <RunButton onClick={() => onRun()} isRunning={isRunning} label="▶ 지도안·평가지 생성" />;
-  }
+  if (status === "active") return <RunButton onClick={() => onRun()} isRunning={isRunning} label="▶ 지도안·평가지 생성" />;
   if (!state.A2) return null;
 
   return (
@@ -341,8 +370,16 @@ function A2Content({ status, state, isRunning, onRun }: {
         {showPlan ? "▲ 지도안 접기" : "▼ 지도안 펼치기"}
       </button>
       {showPlan && (
-        <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm text-[#1E293B] whitespace-pre-wrap font-mono overflow-x-auto max-h-80 overflow-y-auto">
-          {state.A2.lessonPlan}
+        <div className="bg-white border border-gray-200 rounded-xl p-5 overflow-x-auto max-h-[32rem] overflow-y-auto prose prose-sm max-w-none
+          [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm
+          [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-50 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold
+          [&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top
+          [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-3
+          [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2
+          [&_strong]:font-semibold [&_hr]:border-gray-200 [&_hr]:my-4">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {state.A2.lessonPlan}
+          </ReactMarkdown>
         </div>
       )}
       <div>
@@ -361,14 +398,20 @@ function A2Content({ status, state, isRunning, onRun }: {
       </div>
       <div>
         <p className="text-sm font-semibold text-gray-600 mb-2">이원목적분류표</p>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 text-xs overflow-x-auto whitespace-pre-wrap">
-          {state.A2.twoWayTable}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 overflow-x-auto
+          prose prose-sm max-w-none
+          [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-50 [&_th]:px-3 [&_th]:py-2 [&_th]:text-sm
+          [&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-2 [&_td]:text-sm">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {state.A2.twoWayTable}
+          </ReactMarkdown>
         </div>
       </div>
     </div>
   );
 }
 
+// ── A3 ──────────────────────────────────────────────────────────────────────
 function A3Content({ status, state, stage, isRunning, debateConfig, setDebateConfig, onRun, onTurnAdded, onFinishDebate, sessionId }: {
   status: StageStatus; state: DebateSessionState; stage: SessionStage; isRunning: boolean;
   debateConfig: { level: string; studentPosition: "찬성" | "반대" };
@@ -376,7 +419,10 @@ function A3Content({ status, state, stage, isRunning, debateConfig, setDebateCon
   onRun: (o?: Record<string, string>) => void; onTurnAdded: (s: Turn, b: Turn) => void;
   onFinishDebate: () => void; sessionId: string;
 }) {
-  if (status === "active" && stage === "A3_READY") {
+  // 설정 폼: A2_DONE 또는 A3_READY 상태에서 표시
+  const showConfig = status === "active" && (stage === "A2_DONE" || stage === "A3_READY");
+
+  if (showConfig) {
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -402,7 +448,11 @@ function A3Content({ status, state, stage, isRunning, debateConfig, setDebateCon
             </select>
           </div>
         </div>
-        <RunButton onClick={() => onRun({ level: debateConfig.level, studentPosition: debateConfig.studentPosition })} isRunning={isRunning} label="▶ 토론 시작" />
+        <RunButton
+          onClick={() => onRun({ level: debateConfig.level, studentPosition: debateConfig.studentPosition })}
+          isRunning={isRunning}
+          label="▶ AI 토론 시작"
+        />
       </div>
     );
   }
@@ -423,6 +473,7 @@ function A3Content({ status, state, stage, isRunning, debateConfig, setDebateCon
   return null;
 }
 
+// ── A4 ──────────────────────────────────────────────────────────────────────
 function A4Content({ status, state, isRunning, onRun }: {
   status: StageStatus; state: DebateSessionState; isRunning: boolean; onRun: (o?: Record<string, string>) => void;
 }) {
@@ -445,6 +496,7 @@ function A4Content({ status, state, isRunning, onRun }: {
   );
 }
 
+// ── A5 ──────────────────────────────────────────────────────────────────────
 function A5Content({ status, state, isRunning, onRun, onApprove }: {
   status: StageStatus; state: DebateSessionState; isRunning: boolean;
   onRun: (o?: Record<string, string>) => void; onApprove: (p?: string) => void;
@@ -479,6 +531,7 @@ function A5Content({ status, state, isRunning, onRun, onApprove }: {
   );
 }
 
+// ── A6 ──────────────────────────────────────────────────────────────────────
 function A6Content({ status, state, isRunning, onRun }: {
   status: StageStatus; state: DebateSessionState; isRunning: boolean; onRun: (o?: Record<string, string>) => void;
 }) {
@@ -498,14 +551,12 @@ function A6Content({ status, state, isRunning, onRun }: {
           {state.A6.subjectDev}
         </div>
       </div>
-      <div className="flex gap-2">
-        <button
-          onClick={() => navigator.clipboard.writeText(`[누가기록]\n${state.A6!.cumulative}\n\n[교과학습발달상황]\n${state.A6!.subjectDev}`)}
-          className="px-4 py-2 rounded-xl border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-sm font-medium transition-colors"
-        >
-          📋 복사
-        </button>
-      </div>
+      <button
+        onClick={() => navigator.clipboard.writeText(`[누가기록]\n${state.A6!.cumulative}\n\n[교과학습발달상황]\n${state.A6!.subjectDev}`)}
+        className="px-4 py-2 rounded-xl border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-sm font-medium transition-colors"
+      >
+        📋 복사
+      </button>
     </div>
   );
 }

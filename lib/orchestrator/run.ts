@@ -7,9 +7,7 @@ import { runA6 } from "@/lib/agents/a6-record";
 import type { DebateSessionState, SessionStage } from "@/lib/types/session";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type JsonValue = any;
-
-function toJson(state: DebateSessionState): JsonValue {
+function toJson(state: DebateSessionState): any {
   return JSON.parse(JSON.stringify(state));
 }
 
@@ -27,19 +25,24 @@ const STAGE_MAP: Partial<Record<SessionStage, StageTransition>> = {
     next: "A2_DONE",
     run: async (state) => ({ A2: await runA2(state) }),
   },
+  // A2_DONE → A3: run route sets stage to A3_READY first (with config), then this fires
   A3_READY: {
     next: "A3_RUNNING",
-    run: async (state) => ({ A3: { level: state.A3?.level ?? "중급", studentPosition: state.A3?.studentPosition ?? "찬성", turns: [] } }),
+    run: async (state) => ({
+      A3: {
+        level: state.A3?.level ?? "중급",
+        studentPosition: state.A3?.studentPosition ?? "찬성",
+        turns: [],
+      },
+    }),
   },
+  // A3_DONE: directly run A4 in one click (skip A4_READY placeholder)
   A3_DONE: {
-    next: "A4_READY",
-    run: async (state) => state,
-  },
-  A4_READY: {
     next: "A4_DONE",
     run: async (state) => ({ A4: await runA4(state) }),
   },
-  A5_READY: {
+  // A4_DONE: directly run A5 in one click (skip A5_READY placeholder)
+  A4_DONE: {
     next: "A5_DONE_WAIT_APPROVAL",
     run: async (state) => ({ A5: await runA5(state) }),
   },
