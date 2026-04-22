@@ -19,11 +19,11 @@ interface SessionData {
 type StageStatus = "done" | "active" | "waiting" | "approval-needed";
 
 const STAGE_META = [
-  { key: "A1", label: "① 학습문제 제안", icon: "📋", readyStage: "A1_READY", doneStages: ["A1_DONE_WAIT_APPROVAL", "A2_READY", "A2_DONE", "A3_READY", "A3_RUNNING", "A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"] },
+  { key: "A1", label: "① 학습문제 제안", icon: "📋", readyStage: "A1_READY", doneStages: ["A2_READY", "A2_DONE", "A3_READY", "A3_RUNNING", "A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"] },
   { key: "A2", label: "② 지도안·평가지", icon: "📝", readyStage: "A2_READY", doneStages: ["A2_DONE", "A3_READY", "A3_RUNNING", "A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"] },
   { key: "A3", label: "③ 토론 시뮬레이션", icon: "💬", readyStage: "A3_READY", doneStages: ["A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"] },
   { key: "A4", label: "④ 과정 관찰", icon: "🔍", readyStage: "A4_READY", doneStages: ["A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"] },
-  { key: "A5", label: "⑤ 평가 판정", icon: "📊", readyStage: "A5_READY", doneStages: ["A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"] },
+  { key: "A5", label: "⑤ 평가 판정", icon: "📊", readyStage: "A5_READY", doneStages: ["A6_READY", "A6_DONE", "COMPLETED"] },
   { key: "A6", label: "⑥ 생기부 초안", icon: "📄", readyStage: "A6_READY", doneStages: ["A6_DONE", "COMPLETED"] },
 ];
 
