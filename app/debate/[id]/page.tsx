@@ -90,6 +90,21 @@ export default function DebateSessionPage() {
     }
   }
 
+  async function rerunA1() {
+    setRunningStage("rerunning");
+    setError("");
+    try {
+      const res = await fetch(`/api/sessions/${id}/rerun-a1`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await fetchSession();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
+    } finally {
+      setRunningStage("");
+    }
+  }
+
   function handleTurnAdded(studentTurn: Turn, botTurn: Turn) {
     setSession((prev) => {
       if (!prev) return prev;
@@ -194,6 +209,7 @@ export default function DebateSessionPage() {
                       setDebateConfig={setDebateConfig}
                       onRun={runStage}
                       onApprove={approveStage}
+                      onRerunA1={rerunA1}
                       onTurnAdded={handleTurnAdded}
                       onFinishDebate={finishDebate}
                       sessionId={id}
@@ -219,7 +235,7 @@ function StatusBadge({ status }: { status: StageStatus }) {
 
 function StageContent({
   stageKey, status, state, stage, isRunning, debateConfig, setDebateConfig,
-  onRun, onApprove, onTurnAdded, onFinishDebate, sessionId,
+  onRun, onApprove, onRerunA1, onTurnAdded, onFinishDebate, sessionId,
 }: {
   stageKey: string;
   status: StageStatus;
@@ -230,6 +246,7 @@ function StageContent({
   setDebateConfig: React.Dispatch<React.SetStateAction<{ level: string; studentPosition: "찬성" | "반대" }>>;
   onRun: (opts?: Record<string, string>) => void;
   onApprove: (chosenProblem?: string) => void;
+  onRerunA1: () => void;
   onTurnAdded: (s: Turn, b: Turn) => void;
   onFinishDebate: () => void;
   sessionId: string;
@@ -238,7 +255,7 @@ function StageContent({
     return <p className="text-gray-400 text-sm">이전 단계가 완료되면 실행할 수 있습니다.</p>;
   }
 
-  if (stageKey === "A1") return <A1Content status={status} state={state} stage={stage} isRunning={isRunning} onRun={onRun} onApprove={onApprove} />;
+  if (stageKey === "A1") return <A1Content status={status} state={state} stage={stage} isRunning={isRunning} onRun={onRun} onApprove={onApprove} onRerun={onRerunA1} />;
   if (stageKey === "A2") return <A2Content status={status} state={state} isRunning={isRunning} onRun={onRun} />;
   if (stageKey === "A3") return <A3Content status={status} state={state} stage={stage} isRunning={isRunning} debateConfig={debateConfig} setDebateConfig={setDebateConfig} onRun={onRun} onTurnAdded={onTurnAdded} onFinishDebate={onFinishDebate} sessionId={sessionId} />;
   if (stageKey === "A4") return <A4Content status={status} state={state} isRunning={isRunning} onRun={onRun} />;
@@ -259,9 +276,9 @@ function RunButton({ onClick, isRunning, label = "▶ 실행" }: { onClick: () =
   );
 }
 
-function A1Content({ status, state, stage, isRunning, onRun, onApprove }: {
+function A1Content({ status, state, stage, isRunning, onRun, onApprove, onRerun }: {
   status: StageStatus; state: DebateSessionState; stage: SessionStage; isRunning: boolean;
-  onRun: (o?: Record<string, string>) => void; onApprove: (p?: string) => void;
+  onRun: (o?: Record<string, string>) => void; onApprove: (p?: string) => void; onRerun: () => void;
 }) {
   const [chosen, setChosen] = useState(state.A1?.chosen ?? "");
 
@@ -287,13 +304,22 @@ function A1Content({ status, state, stage, isRunning, onRun, onApprove }: {
         </label>
       ))}
       {status === "approval-needed" && (
-        <button
-          onClick={() => onApprove(chosen || state.A1?.problems[0]?.id)}
-          disabled={isRunning}
-          className="mt-2 px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold text-sm transition-colors"
-        >
-          ✔ 선택하고 승인
-        </button>
+        <div className="flex gap-3 mt-2">
+          <button
+            onClick={() => onApprove(chosen || state.A1?.problems[0]?.id)}
+            disabled={isRunning || !chosen}
+            className="px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold text-sm transition-colors"
+          >
+            ✔ 선택하고 승인
+          </button>
+          <button
+            onClick={onRerun}
+            disabled={isRunning}
+            className="px-6 py-3 rounded-xl border-2 border-gray-300 hover:border-indigo-400 hover:text-indigo-600 disabled:opacity-40 text-gray-600 font-bold text-sm transition-colors"
+          >
+            🔄 다시 제안받기
+          </button>
+        </div>
       )}
     </div>
   );
