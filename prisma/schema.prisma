@@ -70,3 +70,45 @@ model ChatMessage {
 
   @@index([documentId])
 }
+
+model DebateSession {
+  id        String       @id @default(cuid())
+  teacherId String       @default("default")
+  topic     String
+  grade     String?
+  subject   String?
+  stage     SessionStage @default(A1_READY)
+  state     Json
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  turns     DebateTurn[]
+}
+
+model DebateTurn {
+  id        String        @id @default(cuid())
+  sessionId String
+  order     Int
+  speaker   String
+  side      String
+  phase     String
+  text      String        @db.Text
+  createdAt DateTime      @default(now())
+  session   DebateSession @relation(fields: [sessionId], references: [id])
+}
+
+enum SessionStage {
+  A1_READY
+  A1_DONE_WAIT_APPROVAL
+  A2_READY
+  A2_DONE
+  A3_READY
+  A3_RUNNING
+  A3_DONE
+  A4_READY
+  A4_DONE
+  A5_READY
+  A5_DONE_WAIT_APPROVAL
+  A6_READY
+  A6_DONE
+  COMPLETED
+}
