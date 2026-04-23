@@ -10,7 +10,7 @@ import ThreadDashboard from "@/components/debate/ThreadDashboard";
 import OrchestratorPanel from "@/components/debate/OrchestratorPanel";
 import {
   MIN_TURNS_TO_FINISH,
-  type DebateSessionState, type DebateThread, type Problem, type SessionStage,
+  type DebateSessionState, type DebateThread, type Problem, type RubricSchema, type SessionStage,
 } from "@/lib/types/session";
 
 interface SessionData {
@@ -291,7 +291,7 @@ function StageContent({
     return <p className="text-gray-400 text-sm">이전 단계가 완료되면 실행할 수 있습니다.</p>;
   }
   if (stageKey === "A1") return <A1Content status={status} state={state} stage={stage} isRunning={isRunning} onRun={onRun} onApprove={onApprove} onRerun={onRerunA1} />;
-  if (stageKey === "A2") return <A2Content status={status} state={state} isRunning={isRunning} onRun={onRun} />;
+  if (stageKey === "A2") return <A2Content status={status} state={state} isRunning={isRunning} onRun={onRun} sessionId={sessionId} />;
   if (stageKey === "A3") return <A3Content status={status} state={state} stage={stage} isRunning={isRunning} level={level} setLevel={setLevel} onRun={onRun} onFinishA3={onFinishA3} sessionId={sessionId} />;
   if (stageKey === "A4") return <A4Content status={status} state={state} isRunning={isRunning} onRun={onRun} />;
   if (stageKey === "A5") return <A5Content status={status} state={state} isRunning={isRunning} onRun={onRun} onApprove={onApprove} />;
@@ -361,8 +361,9 @@ function A1Content({ status, state, stage, isRunning, onRun, onApprove, onRerun 
 }
 
 // ── A2 ──────────────────────────────────────────────────────────────────────
-function A2Content({ status, state, isRunning, onRun }: {
-  status: StageStatus; state: DebateSessionState; isRunning: boolean; onRun: (o?: Record<string, string>) => void;
+function A2Content({ status, state, isRunning, onRun, sessionId }: {
+  status: StageStatus; state: DebateSessionState; isRunning: boolean;
+  onRun: (o?: Record<string, string>) => void; sessionId: string;
 }) {
   const [showPlan, setShowPlan] = useState(true);
 
@@ -387,20 +388,7 @@ function A2Content({ status, state, isRunning, onRun }: {
           </ReactMarkdown>
         </div>
       )}
-      <div>
-        <p className="text-sm font-semibold text-gray-600 mb-2">루브릭 (평가기준)</p>
-        <div className="space-y-2">
-          {state.A2.rubric?.criteria?.map((c) => (
-            <div key={c.id} className="bg-white border border-gray-200 rounded-xl p-3">
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-semibold text-sm text-[#1E293B]">{c.name}</span>
-                <span className="text-xs text-gray-400">{c.max}점</span>
-              </div>
-              <p className="text-xs text-gray-500">{c.descriptor}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      <RubricEditor rubric={state.A2.rubric} sessionId={sessionId} />
       <div>
         <p className="text-sm font-semibold text-gray-600 mb-2">이원목적분류표</p>
         <div className="bg-white border border-gray-200 rounded-xl p-4 overflow-x-auto
@@ -412,6 +400,121 @@ function A2Content({ status, state, isRunning, onRun }: {
           </ReactMarkdown>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RubricEditor({ rubric, sessionId }: { rubric: RubricSchema; sessionId: string }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(rubric.criteria);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  // 외부에서 rubric이 바뀌면(예: A2 재실행) draft 동기화
+  useEffect(() => {
+    if (!editing) setDraft(rubric.criteria);
+  }, [rubric.criteria, editing]);
+
+  function update(id: string, field: "name" | "descriptor", value: string) {
+    setDraft((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
+  }
+
+  async function save() {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/rubric`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          criteria: draft.map((c) => ({ id: c.id, name: c.name, descriptor: c.descriptor })),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      setEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "저장 중 오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function cancel() {
+    setDraft(rubric.criteria);
+    setEditing(false);
+    setError("");
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-sm font-semibold text-gray-600">루브릭 (평가기준)</p>
+        {!editing ? (
+          <button
+            onClick={() => setEditing(true)}
+            className="text-xs text-indigo-600 hover:underline font-medium"
+          >
+            ✏️ 편집
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              onClick={cancel}
+              disabled={saving}
+              className="text-xs text-gray-500 hover:underline disabled:opacity-40"
+            >
+              취소
+            </button>
+            <button
+              onClick={save}
+              disabled={saving}
+              className="text-xs px-2 py-0.5 rounded bg-indigo-600 text-white font-bold hover:bg-indigo-700 disabled:bg-gray-300"
+            >
+              {saving ? "저장 중..." : "저장"}
+            </button>
+          </div>
+        )}
+      </div>
+      {error && (
+        <div className="mb-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-2 py-1">
+          {error}
+        </div>
+      )}
+      <div className="space-y-2">
+        {draft.map((c) => (
+          <div key={c.id} className="bg-white border border-gray-200 rounded-xl p-3">
+            <div className="flex justify-between items-center mb-1 gap-2">
+              {editing ? (
+                <input
+                  type="text"
+                  value={c.name}
+                  onChange={(e) => update(c.id, "name", e.target.value)}
+                  className="flex-1 px-2 py-1 rounded border-2 border-indigo-200 focus:border-indigo-500 focus:outline-none text-sm font-semibold text-[#1E293B]"
+                />
+              ) : (
+                <span className="font-semibold text-sm text-[#1E293B]">{c.name}</span>
+              )}
+              <span className="text-xs text-gray-400 shrink-0">{c.max}점</span>
+            </div>
+            {editing ? (
+              <textarea
+                value={c.descriptor}
+                onChange={(e) => update(c.id, "descriptor", e.target.value)}
+                rows={2}
+                className="w-full px-2 py-1 rounded border-2 border-indigo-200 focus:border-indigo-500 focus:outline-none text-xs text-gray-600 resize-y"
+              />
+            ) : (
+              <p className="text-xs text-gray-500">{c.descriptor}</p>
+            )}
+          </div>
+        ))}
+      </div>
+      {editing && (
+        <p className="mt-2 text-[11px] text-gray-400">
+          * 항목 이름과 설명만 편집할 수 있습니다. 점수 배점(각 20점)과 항목 개수는 고정입니다.
+        </p>
+      )}
     </div>
   );
 }
