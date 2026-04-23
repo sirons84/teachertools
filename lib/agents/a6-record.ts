@@ -9,6 +9,7 @@ async function recordOne(
   thread: DebateThread,
   obs: StudentObservation,
   a5: StudentA5,
+  teacherNotes: string[],
 ): Promise<StudentA6> {
   const chosenProblem = session.A1?.problems.find((p) => p.id === session.A1?.chosen);
   const label = thread.studentLabel ?? `학생${thread.index + 1}`;
@@ -35,7 +36,8 @@ async function recordOne(
 - 반박력: ${obs.rebuttal}/20
 - 이해도: ${obs.understanding}/20
 - 태도·구조: ${obs.attitude}/20
-`.trim();
+
+${teacherNotes.length ? `## 교사 정성 피드백 (생기부에 자연스럽게 녹여주세요)\n${teacherNotes.map((n) => `- ${n}`).join("\n")}\n` : ""}`.trim();
 
   const raw = await callClaude({ system, user, responseFormat: "json" });
   return JSON.parse(raw) as StudentA6;
@@ -54,7 +56,8 @@ export async function runA6(session: DebateSessionState): Promise<DebateSessionS
       if (!obs || !a5) {
         return { threadId: thread.id, cumulative: "", subjectDev: "" };
       }
-      const record = await recordOne(system, session, thread, obs, a5);
+      const notes = session.teacherNotes?.[thread.id] ?? [];
+      const record = await recordOne(system, session, thread, obs, a5, notes);
       return { threadId: thread.id, ...record };
     })
   );

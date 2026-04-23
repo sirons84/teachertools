@@ -7,6 +7,7 @@ async function evaluateOne(
   system: string,
   rubric: RubricSchema | undefined,
   obs: StudentObservation,
+  teacherNotes: string[],
 ): Promise<StudentA5> {
   const user = `
 ## 루브릭 기준
@@ -21,7 +22,8 @@ ${rubric?.criteria.map((c) => `- ${c.name}(${c.id}): ${c.descriptor}`).join("\n"
 
 ## 인용 근거
 ${Object.entries(obs.quotes ?? {}).map(([k, v]) => `- ${k}: "${v}"`).join("\n")}
-`.trim();
+
+${teacherNotes.length ? `## 교사 정성 피드백 (중요 — 평가에 반드시 반영)\n${teacherNotes.map((n) => `- ${n}`).join("\n")}\n` : ""}`.trim();
 
   const raw = await callClaude({ system, user, responseFormat: "json" });
   return JSON.parse(raw) as StudentA5;
@@ -35,8 +37,18 @@ export async function runA5(session: DebateSessionState): Promise<DebateSessionS
 
   const perStudent = await Promise.all(
     observations.map(async (obs) => {
-      const result = await evaluateOne(system, session.A2?.rubric, obs);
-      return { threadId: obs.threadId, ...result };
+      const notes = session.teacherNotes?.[obs.threadId] ?? [];
+      const override = session.gradeOverrides?.[obs.threadId];
+      const result = await evaluateOne(system, session.A2?.rubric, obs, notes);
+      const evidence = notes.length
+        ? { ...result.evidence, teacherNote: notes.join(" / ") }
+        : result.evidence;
+      return {
+        threadId: obs.threadId,
+        ...result,
+        grade: override ?? result.grade,
+        evidence,
+      };
     })
   );
 

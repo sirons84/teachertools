@@ -98,7 +98,23 @@ export interface DebateSessionState {
     afterA1?: string;
     afterA5?: string;
   };
+  orchestratorChat?: OrchestratorMessage[];
+  teacherNotes?: Record<string, string[]>;
+  gradeOverrides?: Record<string, "상" | "중" | "하">;
 }
+
+export interface OrchestratorMessage {
+  role: "teacher" | "ai";
+  text: string;
+  ts: string;
+  actions?: OrchestratorAction[];
+}
+
+export type OrchestratorAction =
+  | { type: "finishThreads"; indices: number[] }
+  | { type: "restartThreads"; indices: number[] }
+  | { type: "addNote"; indices: number[]; note: string }
+  | { type: "setGrade"; indices: number[]; grade: "상" | "중" | "하" };
 
 export const MVP_THREAD_COUNT = 5;
 export const MIN_TURNS_TO_FINISH = 4;

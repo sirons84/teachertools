@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import type { SessionStage } from "@/lib/types/session";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { OrchestratorAction, OrchestratorMessage, SessionStage } from "@/lib/types/session";
 
-interface OrchestratorResult {
+interface StatusResult {
   overall: string;
   nextAction: string;
   perThread: Array<{ threadId: string; level: "info" | "warn" | "success"; msg: string }>;
@@ -12,35 +12,74 @@ interface OrchestratorResult {
 interface Props {
   sessionId: string;
   stage: SessionStage;
+  chat: OrchestratorMessage[];
+  onActionsApplied: () => void;
 }
 
-export default function OrchestratorPanel({ sessionId, stage }: Props) {
-  const [data, setData] = useState<OrchestratorResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+const ACTION_LABELS: Record<OrchestratorAction["type"], string> = {
+  finishThreads: "토론 종료",
+  restartThreads: "토론 재시작",
+  addNote: "메모 추가",
+  setGrade: "평가 지정",
+};
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+export default function OrchestratorPanel({ sessionId, stage, chat, onActionsApplied }: Props) {
+  const [status, setStatus] = useState<StatusResult | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusAt, setStatusAt] = useState<Date | null>(null);
+
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [chatError, setChatError] = useState("");
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  const fetchStatus = useCallback(async () => {
+    setStatusLoading(true);
     try {
       const res = await fetch(`/api/sessions/${sessionId}/orchestrator`);
-      const json = (await res.json()) as OrchestratorResult;
-      setData(json);
-      setUpdatedAt(new Date());
+      const json = (await res.json()) as StatusResult;
+      setStatus(json);
+      setStatusAt(new Date());
     } catch {
       // silent
     } finally {
-      setLoading(false);
+      setStatusLoading(false);
     }
   }, [sessionId]);
 
   useEffect(() => {
-    fetchData();
-    // A3_RUNNING 동안만 주기 갱신 (15초)
+    fetchStatus();
     if (stage === "A3_RUNNING") {
-      const timer = setInterval(fetchData, 15000);
+      const timer = setInterval(fetchStatus, 15000);
       return () => clearInterval(timer);
     }
-  }, [stage, fetchData]);
+  }, [stage, fetchStatus]);
+
+  useEffect(() => {
+    chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [chat.length]);
+
+  async function sendMessage() {
+    if (!input.trim() || sending) return;
+    setSending(true);
+    setChatError("");
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/orchestrator/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      setInput("");
+      onActionsApplied(); // 부모가 세션 새로고침
+      fetchStatus(); // 상태 요약도 갱신
+    } catch (err) {
+      setChatError(err instanceof Error ? err.message : "오류가 발생했습니다.");
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <div className="mb-6 rounded-2xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4 sm:p-5">
@@ -50,30 +89,28 @@ export default function OrchestratorPanel({ sessionId, stage }: Props) {
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="text-sm font-bold text-indigo-700">AI 오케스트레이터</p>
             <div className="flex items-center gap-2 text-[11px] text-gray-400">
-              {updatedAt && <span>{updatedAt.toLocaleTimeString()}</span>}
+              {statusAt && <span>{statusAt.toLocaleTimeString()}</span>}
               <button
-                onClick={fetchData}
-                disabled={loading}
+                onClick={fetchStatus}
+                disabled={statusLoading}
                 className="text-indigo-600 hover:underline disabled:opacity-50"
               >
-                {loading ? "분석 중..." : "새로고침"}
+                {statusLoading ? "분석 중..." : "상태 새로고침"}
               </button>
             </div>
           </div>
-          {!data && loading && (
-            <p className="mt-2 text-sm text-gray-400">현재 상태 분석 중...</p>
-          )}
-          {data && (
+
+          {status && (
             <div className="mt-2 space-y-2">
-              <p className="text-sm text-[#1E293B] leading-relaxed">{data.overall}</p>
-              {data.nextAction && (
+              <p className="text-sm text-[#1E293B] leading-relaxed">{status.overall}</p>
+              {status.nextAction && (
                 <p className="text-xs text-gray-600">
-                  <span className="font-semibold text-indigo-700">💡 다음 행동:</span> {data.nextAction}
+                  <span className="font-semibold text-indigo-700">💡 다음 행동:</span> {status.nextAction}
                 </p>
               )}
-              {data.perThread.length > 0 && (
+              {status.perThread.length > 0 && (
                 <ul className="mt-2 space-y-1">
-                  {data.perThread.map((p) => (
+                  {status.perThread.map((p) => (
                     <li key={p.threadId} className="flex items-start gap-2 text-xs">
                       <span className={`inline-block px-1.5 py-0.5 rounded-full font-bold text-[10px] shrink-0 ${
                         p.level === "warn" ? "bg-amber-100 text-amber-700" :
@@ -89,6 +126,66 @@ export default function OrchestratorPanel({ sessionId, stage }: Props) {
               )}
             </div>
           )}
+
+          <div className="mt-4 pt-4 border-t border-indigo-100">
+            <p className="text-xs font-semibold text-indigo-700 mb-2">💬 오케스트레이터에게 명령/피드백</p>
+            <div
+              ref={chatScrollRef}
+              className="max-h-64 overflow-y-auto space-y-2 mb-3 pr-1"
+            >
+              {chat.length === 0 && (
+                <p className="text-xs text-gray-400 italic">
+                  예: &ldquo;3,4번 토론 종료해줘&rdquo; / &ldquo;2번 결과 상이었어, 태도 좋음&rdquo;
+                </p>
+              )}
+              {chat.map((m, i) => (
+                <div key={i} className={`flex ${m.role === "teacher" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs ${
+                    m.role === "teacher"
+                      ? "bg-indigo-600 text-white rounded-br-sm"
+                      : "bg-white border border-indigo-200 text-[#1E293B] rounded-bl-sm"
+                  }`}>
+                    <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>
+                    {m.role === "ai" && m.actions && m.actions.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {m.actions.map((a, j) => (
+                          <span key={j} className="inline-block px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-100">
+                            {ACTION_LABELS[a.type]} · {a.indices.join(",")}번
+                            {a.type === "setGrade" && ` → ${a.grade}`}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {chatError && (
+              <div className="mb-2 text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-2 py-1">
+                {chatError}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendMessage(); } }}
+                placeholder="예: 3번, 4번 토론 종료해줘"
+                disabled={sending}
+                className="flex-1 px-3 py-2 rounded-lg border-2 border-indigo-200 focus:border-indigo-500 focus:outline-none text-sm bg-white disabled:bg-gray-50"
+              />
+              <button
+                onClick={sendMessage}
+                disabled={sending || !input.trim()}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white text-sm font-bold transition-colors"
+              >
+                {sending ? "..." : "전송"}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

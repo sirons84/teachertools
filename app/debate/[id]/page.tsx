@@ -201,8 +201,13 @@ export default function DebateSessionPage() {
           </div>
         </div>
 
-        {(stage === "A3_RUNNING" || stage === "A3_DONE") && (
-          <OrchestratorPanel sessionId={id} stage={stage} />
+        {["A3_READY", "A3_RUNNING", "A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"].includes(stage) && (
+          <OrchestratorPanel
+            sessionId={id}
+            stage={stage}
+            chat={state.orchestratorChat ?? []}
+            onActionsApplied={fetchSession}
+          />
         )}
 
         {error && (
