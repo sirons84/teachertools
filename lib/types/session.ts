@@ -36,6 +36,19 @@ export interface Problem {
   score: number;
 }
 
+export type ThreadStatus = "pending" | "active" | "finished";
+
+export interface DebateThread {
+  id: string;
+  index: number;
+  studentLabel?: string;
+  position: "찬성" | "반대" | null;
+  status: ThreadStatus;
+  joinedAt?: string;
+  lastActivityAt?: string;
+  turns: Turn[];
+}
+
 export interface StudentObservation {
   logical: number;
   evidence: number;
@@ -43,6 +56,17 @@ export interface StudentObservation {
   understanding: number;
   attitude: number;
   quotes: Record<string, string>;
+}
+
+export interface StudentA5 {
+  grade: "상" | "중" | "하";
+  totalScore: number;
+  evidence: Record<string, string>;
+}
+
+export interface StudentA6 {
+  cumulative: string;
+  subjectDev: string;
 }
 
 export interface DebateSessionState {
@@ -59,23 +83,22 @@ export interface DebateSessionState {
   };
   A3?: {
     level: "초급" | "중급" | "고급";
-    studentPosition: "찬성" | "반대";
-    turns: Turn[];
+    threads: DebateThread[];
   };
   A4?: {
-    perStudent: StudentObservation[];
+    perStudent: Array<StudentObservation & { threadId: string }>;
   };
   A5?: {
-    grade: "상" | "중" | "하";
-    totalScore: number;
-    evidence: Record<string, string>;
+    perStudent: Array<StudentA5 & { threadId: string }>;
   };
   A6?: {
-    cumulative: string;
-    subjectDev: string;
+    perStudent: Array<StudentA6 & { threadId: string }>;
   };
   approvals: {
     afterA1?: string;
     afterA5?: string;
   };
 }
+
+export const MVP_THREAD_COUNT = 5;
+export const MIN_TURNS_TO_FINISH = 4;

@@ -87,6 +87,7 @@ model DebateSession {
 model DebateTurn {
   id        String        @id @default(cuid())
   sessionId String
+  threadId  String?
   order     Int
   speaker   String
   side      String
@@ -94,6 +95,8 @@ model DebateTurn {
   text      String        @db.Text
   createdAt DateTime      @default(now())
   session   DebateSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId, threadId])
 }
 
 enum SessionStage {

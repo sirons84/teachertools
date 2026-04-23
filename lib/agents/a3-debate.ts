@@ -1,10 +1,11 @@
 import { readFile } from "fs/promises";
 import path from "path";
 import { callClaudeWithHistory } from "@/lib/claude";
-import type { DebateSessionState, Turn } from "@/lib/types/session";
+import type { DebateSessionState, DebateThread, Turn } from "@/lib/types/session";
 
 export async function runA3Turn(
   session: DebateSessionState,
+  thread: DebateThread,
   studentText: string,
   phase: Turn["phase"]
 ): Promise<string> {
@@ -12,9 +13,8 @@ export async function runA3Turn(
 
   const chosenProblem = session.A1?.problems.find((p) => p.id === session.A1?.chosen);
   const level = session.A3?.level ?? "중급";
-  const studentPosition = session.A3?.studentPosition ?? "찬성";
+  const studentPosition = thread.position ?? "찬성";
   const botPosition = studentPosition === "찬성" ? "반대" : "찬성";
-  const existingTurns = session.A3?.turns ?? [];
 
   const systemWithContext = `${system}
 
@@ -26,7 +26,7 @@ export async function runA3Turn(
 
   const messages: Array<{ role: "user" | "assistant"; content: string }> = [];
 
-  for (const turn of existingTurns) {
+  for (const turn of thread.turns) {
     if (turn.speaker === "student") {
       messages.push({ role: "user", content: `[${turn.phase}] ${turn.text}` });
     } else {

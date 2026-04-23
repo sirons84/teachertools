@@ -1,15 +1,13 @@
 import { readFile } from "fs/promises";
 import path from "path";
 import { callClaude } from "@/lib/claude";
-import type { DebateSessionState } from "@/lib/types/session";
+import type { DebateSessionState, RubricSchema, StudentA5, StudentObservation } from "@/lib/types/session";
 
-export async function runA5(session: DebateSessionState): Promise<DebateSessionState["A5"]> {
-  const system = await readFile(path.join(process.cwd(), "prompts/a5.md"), "utf-8");
-  const obs = session.A4?.perStudent[0];
-  const rubric = session.A2?.rubric;
-
-  if (!obs) throw new Error("A4 관찰 결과가 없습니다.");
-
+async function evaluateOne(
+  system: string,
+  rubric: RubricSchema | undefined,
+  obs: StudentObservation,
+): Promise<StudentA5> {
   const user = `
 ## 루브릭 기준
 ${rubric?.criteria.map((c) => `- ${c.name}(${c.id}): ${c.descriptor}`).join("\n") ?? "기본 루브릭 사용"}
@@ -22,9 +20,25 @@ ${rubric?.criteria.map((c) => `- ${c.name}(${c.id}): ${c.descriptor}`).join("\n"
 - 태도·구조(attitude): ${obs.attitude}/20
 
 ## 인용 근거
-${Object.entries(obs.quotes).map(([k, v]) => `- ${k}: "${v}"`).join("\n")}
+${Object.entries(obs.quotes ?? {}).map(([k, v]) => `- ${k}: "${v}"`).join("\n")}
 `.trim();
 
   const raw = await callClaude({ system, user, responseFormat: "json" });
-  return JSON.parse(raw) as NonNullable<DebateSessionState["A5"]>;
+  return JSON.parse(raw) as StudentA5;
+}
+
+export async function runA5(session: DebateSessionState): Promise<DebateSessionState["A5"]> {
+  const system = await readFile(path.join(process.cwd(), "prompts/a5.md"), "utf-8");
+  const observations = session.A4?.perStudent ?? [];
+
+  if (observations.length === 0) throw new Error("A4 관찰 결과가 없습니다.");
+
+  const perStudent = await Promise.all(
+    observations.map(async (obs) => {
+      const result = await evaluateOne(system, session.A2?.rubric, obs);
+      return { threadId: obs.threadId, ...result };
+    })
+  );
+
+  return { perStudent };
 }

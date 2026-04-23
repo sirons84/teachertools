@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import DebateChat from "@/components/debate/DebateChat";
-import type { DebateSessionState, SessionStage, Turn, Problem } from "@/lib/types/session";
+import ThreadDashboard from "@/components/debate/ThreadDashboard";
+import OrchestratorPanel from "@/components/debate/OrchestratorPanel";
+import {
+  MIN_TURNS_TO_FINISH,
+  type DebateSessionState, type DebateThread, type Problem, type SessionStage,
+} from "@/lib/types/session";
 
 interface SessionData {
   id: string;
@@ -33,26 +37,23 @@ const STAGE_META = [
     doneStages: ["A2_DONE", "A3_READY", "A3_RUNNING", "A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"],
   },
   {
-    key: "A3", label: "③ AI 토론 에이전트", icon: "💬",
-    // A2_DONE·A3_READY: 설정 폼 표시 / A3_RUNNING: 채팅 표시
+    key: "A3", label: "③ AI 토론 (학생 5명)", icon: "💬",
     activeStages: ["A2_DONE", "A3_READY", "A3_RUNNING"],
     doneStages: ["A3_DONE", "A4_READY", "A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"],
   },
   {
-    key: "A4", label: "④ 과정 관찰", icon: "🔍",
-    // A3_DONE: 관찰 분석 버튼 표시
+    key: "A4", label: "④ 과정 관찰 (5명)", icon: "🔍",
     activeStages: ["A3_DONE", "A4_READY"],
     doneStages: ["A4_DONE", "A5_READY", "A5_DONE_WAIT_APPROVAL", "A6_READY", "A6_DONE", "COMPLETED"],
   },
   {
-    key: "A5", label: "⑤ 평가 판정", icon: "📊",
-    // A4_DONE: 평가 판정 버튼 표시
+    key: "A5", label: "⑤ 평가 판정 (5명)", icon: "📊",
     activeStages: ["A4_DONE", "A5_READY"],
     approvalStage: "A5_DONE_WAIT_APPROVAL" as SessionStage,
     doneStages: ["A6_READY", "A6_DONE", "COMPLETED"],
   },
   {
-    key: "A6", label: "⑥ 생기부 초안", icon: "📄",
+    key: "A6", label: "⑥ 생기부 초안 (5명)", icon: "📄",
     activeStages: ["A6_READY"],
     doneStages: ["A6_DONE", "COMPLETED"],
   },
@@ -72,7 +73,7 @@ export default function DebateSessionPage() {
   const [runningStage, setRunningStage] = useState("");
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [debateConfig, setDebateConfig] = useState({ level: "중급", studentPosition: "찬성" as "찬성" | "반대" });
+  const [level, setLevel] = useState<"초급" | "중급" | "고급">("중급");
 
   const fetchSession = useCallback(async () => {
     const res = await fetch(`/api/sessions/${id}`);
@@ -82,6 +83,17 @@ export default function DebateSessionPage() {
   }, [id]);
 
   useEffect(() => { fetchSession(); }, [fetchSession]);
+
+  // A3_RUNNING 동안 주기적으로 세션 폴링 (학생들 토론 진행 상황 업데이트)
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (session?.stage === "A3_RUNNING") {
+      pollingRef.current = setInterval(fetchSession, 5000);
+    }
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [session?.stage, fetchSession]);
 
   async function runStage(opts?: Record<string, string>) {
     setRunningStage("running");
@@ -136,25 +148,11 @@ export default function DebateSessionPage() {
     }
   }
 
-  function handleTurnAdded(studentTurn: Turn, botTurn: Turn) {
-    setSession((prev) => {
-      if (!prev) return prev;
-      const prevTurns = prev.state.A3?.turns ?? [];
-      return {
-        ...prev,
-        state: {
-          ...prev.state,
-          A3: { ...prev.state.A3!, turns: [...prevTurns, studentTurn, botTurn] },
-        },
-      };
-    });
-  }
-
-  async function finishDebate() {
+  async function finishA3() {
     setRunningStage("finishing");
     setError("");
     try {
-      const res = await fetch(`/api/sessions/${id}/finish-debate`, { method: "POST" });
+      const res = await fetch(`/api/sessions/${id}/finish-a3`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       await fetchSession();
@@ -203,6 +201,10 @@ export default function DebateSessionPage() {
           </div>
         </div>
 
+        {(stage === "A3_RUNNING" || stage === "A3_DONE") && (
+          <OrchestratorPanel sessionId={id} stage={stage} />
+        )}
+
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>
         )}
@@ -236,13 +238,12 @@ export default function DebateSessionPage() {
                       state={state}
                       stage={stage}
                       isRunning={isRunning}
-                      debateConfig={debateConfig}
-                      setDebateConfig={setDebateConfig}
+                      level={level}
+                      setLevel={setLevel}
                       onRun={runStage}
                       onApprove={approveStage}
                       onRerunA1={rerunA1}
-                      onTurnAdded={handleTurnAdded}
-                      onFinishDebate={finishDebate}
+                      onFinishA3={finishA3}
                       sessionId={id}
                     />
                   </div>
@@ -265,21 +266,20 @@ function StatusBadge({ status }: { status: StageStatus }) {
 }
 
 function StageContent({
-  stageKey, status, state, stage, isRunning, debateConfig, setDebateConfig,
-  onRun, onApprove, onRerunA1, onTurnAdded, onFinishDebate, sessionId,
+  stageKey, status, state, stage, isRunning, level, setLevel,
+  onRun, onApprove, onRerunA1, onFinishA3, sessionId,
 }: {
   stageKey: string;
   status: StageStatus;
   state: DebateSessionState;
   stage: SessionStage;
   isRunning: boolean;
-  debateConfig: { level: string; studentPosition: "찬성" | "반대" };
-  setDebateConfig: React.Dispatch<React.SetStateAction<{ level: string; studentPosition: "찬성" | "반대" }>>;
+  level: "초급" | "중급" | "고급";
+  setLevel: React.Dispatch<React.SetStateAction<"초급" | "중급" | "고급">>;
   onRun: (opts?: Record<string, string>) => void;
   onApprove: (chosenProblem?: string) => void;
   onRerunA1: () => void;
-  onTurnAdded: (s: Turn, b: Turn) => void;
-  onFinishDebate: () => void;
+  onFinishA3: () => void;
   sessionId: string;
 }) {
   if (status === "waiting") {
@@ -287,18 +287,18 @@ function StageContent({
   }
   if (stageKey === "A1") return <A1Content status={status} state={state} stage={stage} isRunning={isRunning} onRun={onRun} onApprove={onApprove} onRerun={onRerunA1} />;
   if (stageKey === "A2") return <A2Content status={status} state={state} isRunning={isRunning} onRun={onRun} />;
-  if (stageKey === "A3") return <A3Content status={status} state={state} stage={stage} isRunning={isRunning} debateConfig={debateConfig} setDebateConfig={setDebateConfig} onRun={onRun} onTurnAdded={onTurnAdded} onFinishDebate={onFinishDebate} sessionId={sessionId} />;
+  if (stageKey === "A3") return <A3Content status={status} state={state} stage={stage} isRunning={isRunning} level={level} setLevel={setLevel} onRun={onRun} onFinishA3={onFinishA3} sessionId={sessionId} />;
   if (stageKey === "A4") return <A4Content status={status} state={state} isRunning={isRunning} onRun={onRun} />;
   if (stageKey === "A5") return <A5Content status={status} state={state} isRunning={isRunning} onRun={onRun} onApprove={onApprove} />;
   if (stageKey === "A6") return <A6Content status={status} state={state} isRunning={isRunning} onRun={onRun} />;
   return null;
 }
 
-function RunButton({ onClick, isRunning, label = "▶ 실행" }: { onClick: () => void; isRunning: boolean; label?: string }) {
+function RunButton({ onClick, isRunning, label = "▶ 실행", disabled }: { onClick: () => void; isRunning: boolean; label?: string; disabled?: boolean }) {
   return (
     <button
       onClick={onClick}
-      disabled={isRunning}
+      disabled={isRunning || disabled}
       className="mt-4 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-bold text-sm transition-colors flex items-center gap-2"
     >
       {isRunning ? <><span className="animate-spin">⏳</span> AI 생성 중...</> : label}
@@ -412,86 +412,137 @@ function A2Content({ status, state, isRunning, onRun }: {
 }
 
 // ── A3 ──────────────────────────────────────────────────────────────────────
-function A3Content({ status, state, stage, isRunning, debateConfig, setDebateConfig, onRun, onTurnAdded, onFinishDebate, sessionId }: {
+function A3Content({ status, state, stage, isRunning, level, setLevel, onRun, onFinishA3, sessionId }: {
   status: StageStatus; state: DebateSessionState; stage: SessionStage; isRunning: boolean;
-  debateConfig: { level: string; studentPosition: "찬성" | "반대" };
-  setDebateConfig: React.Dispatch<React.SetStateAction<{ level: string; studentPosition: "찬성" | "반대" }>>;
-  onRun: (o?: Record<string, string>) => void; onTurnAdded: (s: Turn, b: Turn) => void;
-  onFinishDebate: () => void; sessionId: string;
+  level: "초급" | "중급" | "고급";
+  setLevel: React.Dispatch<React.SetStateAction<"초급" | "중급" | "고급">>;
+  onRun: (o?: Record<string, string>) => void;
+  onFinishA3: () => void;
+  sessionId: string;
 }) {
-  // 설정 폼: A2_DONE 또는 A3_READY 상태에서 표시
   const showConfig = status === "active" && (stage === "A2_DONE" || stage === "A3_READY");
+  const threads = state.A3?.threads ?? [];
+  const finishedCount = threads.filter((t) => t.status === "finished").length;
+  const minTurnsOk = threads.every((t) => t.turns.length >= MIN_TURNS_TO_FINISH || t.status === "finished");
 
   if (showConfig) {
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">토론 수준</label>
-            <select
-              value={debateConfig.level}
-              onChange={(e) => setDebateConfig((p) => ({ ...p, level: e.target.value }))}
-              className="w-full px-3 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-400 focus:outline-none text-sm bg-white"
-            >
-              {["초급", "중급", "고급"].map((l) => <option key={l}>{l}</option>)}
-            </select>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">토론 수준</label>
+          <div className="grid grid-cols-3 gap-2">
+            {(["초급", "중급", "고급"] as const).map((l) => (
+              <button
+                key={l}
+                onClick={() => setLevel(l)}
+                className={`py-3 rounded-xl border-2 font-semibold transition-colors ${
+                  level === l
+                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                    : "border-gray-200 hover:border-indigo-300 text-gray-600"
+                }`}
+              >
+                {l}
+              </button>
+            ))}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">학생 입장</label>
-            <select
-              value={debateConfig.studentPosition}
-              onChange={(e) => setDebateConfig((p) => ({ ...p, studentPosition: e.target.value as "찬성" | "반대" }))}
-              className="w-full px-3 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-400 focus:outline-none text-sm bg-white"
-            >
-              <option>찬성</option>
-              <option>반대</option>
-            </select>
-          </div>
+          <p className="mt-3 text-xs text-gray-500">
+            시작하면 학생 5명용 QR 코드가 생성됩니다. 학생은 QR 스캔 후 찬성/반대 입장을 선택합니다.
+          </p>
         </div>
         <RunButton
-          onClick={() => onRun({ level: debateConfig.level, studentPosition: debateConfig.studentPosition })}
+          onClick={() => onRun({ level })}
           isRunning={isRunning}
-          label="▶ AI 토론 시작"
+          label="▶ 토론방 5개 만들기 (QR 생성)"
         />
       </div>
     );
   }
 
-  if (stage === "A3_RUNNING" || (status === "done" && state.A3?.turns?.length)) {
+  if (stage === "A3_RUNNING" || (status === "done" && threads.length > 0)) {
     return (
-      <DebateChat
-        sessionId={sessionId}
-        turns={state.A3?.turns ?? []}
-        studentPosition={state.A3?.studentPosition ?? "찬성"}
-        onTurnAdded={onTurnAdded}
-        onFinish={onFinishDebate}
-      />
+      <div className="space-y-4">
+        <ThreadDashboard sessionId={sessionId} threads={threads} />
+        {stage === "A3_RUNNING" && (
+          <div className="pt-3 border-t border-gray-200 flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-sm text-gray-600">
+              종료된 학생: <strong className="text-[#1E293B]">{finishedCount} / {threads.length}</strong>
+              {!minTurnsOk && (
+                <span className="ml-2 text-xs text-amber-600">
+                  (일부 학생 최소 {MIN_TURNS_TO_FINISH / 2}턴 미달)
+                </span>
+              )}
+            </div>
+            <button
+              onClick={onFinishA3}
+              disabled={isRunning || finishedCount === 0}
+              className="px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold text-sm transition-colors"
+              title={finishedCount === 0 ? "최소 1명이 토론을 종료해야 다음 단계로 넘어갈 수 있습니다." : ""}
+            >
+              ✔ 토론 종료하고 분석 단계로
+            </button>
+          </div>
+        )}
+      </div>
     );
   }
 
-  if (status === "done") return <p className="text-sm text-green-600">토론이 완료되었습니다. ({state.A3?.turns?.length ?? 0}턴)</p>;
   return null;
+}
+
+// ── per-student tab helper ────────────────────────────────────────────────
+function StudentTabs({ threads, selected, onSelect }: {
+  threads: DebateThread[];
+  selected: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="flex gap-1 flex-wrap mb-4 border-b border-gray-200 pb-2">
+      {threads.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => onSelect(t.id)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            selected === t.id
+              ? "bg-indigo-600 text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          #{t.index + 1} {t.studentLabel ?? `학생${t.index + 1}`}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 // ── A4 ──────────────────────────────────────────────────────────────────────
 function A4Content({ status, state, isRunning, onRun }: {
   status: StageStatus; state: DebateSessionState; isRunning: boolean; onRun: (o?: Record<string, string>) => void;
 }) {
-  if (status === "active") return <RunButton onClick={() => onRun()} isRunning={isRunning} label="▶ 관찰 분석 실행" />;
-  if (!state.A4?.perStudent?.[0]) return null;
-  const obs = state.A4.perStudent[0];
+  const threads = state.A3?.threads ?? [];
+  const [selected, setSelected] = useState<string | null>(threads[0]?.id ?? null);
+
+  if (status === "active") return <RunButton onClick={() => onRun()} isRunning={isRunning} label="▶ 관찰 분석 실행 (5명)" />;
+  if (!state.A4?.perStudent?.length) return null;
+
+  const current = selected ?? threads[0]?.id;
+  const obs = state.A4.perStudent.find((o) => o.threadId === current);
+  if (!obs) return null;
   const keys: Array<[string, string]> = [["logical", "논리성"], ["evidence", "근거타당성"], ["rebuttal", "반박력"], ["understanding", "이해도"], ["attitude", "태도·구조"]];
+
   return (
-    <div className="space-y-2">
-      {keys.map(([k, label]) => (
-        <div key={k} className="flex items-center gap-3">
-          <span className="text-sm text-gray-600 w-20 shrink-0">{label}</span>
-          <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-indigo-400 rounded-full transition-all" style={{ width: `${(obs[k as keyof typeof obs] as number / 20) * 100}%` }} />
+    <div>
+      <StudentTabs threads={threads} selected={current ?? null} onSelect={setSelected} />
+      <div className="space-y-2">
+        {keys.map(([k, label]) => (
+          <div key={k} className="flex items-center gap-3">
+            <span className="text-sm text-gray-600 w-20 shrink-0">{label}</span>
+            <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-400 rounded-full transition-all" style={{ width: `${(obs[k as keyof typeof obs] as number / 20) * 100}%` }} />
+            </div>
+            <span className="text-sm font-semibold text-indigo-700 w-12 text-right">{obs[k as keyof typeof obs] as number}/20</span>
           </div>
-          <span className="text-sm font-semibold text-indigo-700 w-12 text-right">{obs[k as keyof typeof obs] as number}/20</span>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -501,28 +552,39 @@ function A5Content({ status, state, isRunning, onRun, onApprove }: {
   status: StageStatus; state: DebateSessionState; isRunning: boolean;
   onRun: (o?: Record<string, string>) => void; onApprove: (p?: string) => void;
 }) {
-  if (status === "active") return <RunButton onClick={() => onRun()} isRunning={isRunning} label="▶ 평가 판정 실행" />;
-  if (!state.A5) return null;
-  const gradeColor = { "상": "text-green-600", "중": "text-indigo-600", "하": "text-orange-600" }[state.A5.grade] ?? "text-gray-600";
+  const threads = state.A3?.threads ?? [];
+  const [selected, setSelected] = useState<string | null>(threads[0]?.id ?? null);
+
+  if (status === "active") return <RunButton onClick={() => onRun()} isRunning={isRunning} label="▶ 평가 판정 실행 (5명)" />;
+  if (!state.A5?.perStudent?.length) return null;
+
+  const current = selected ?? threads[0]?.id;
+  const a5 = state.A5.perStudent.find((o) => o.threadId === current);
+  if (!a5) return null;
+  const gradeColor = { "상": "text-green-600", "중": "text-indigo-600", "하": "text-orange-600" }[a5.grade] ?? "text-gray-600";
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <div className={`text-4xl font-black ${gradeColor}`}>{state.A5.grade}</div>
-        <div>
-          <p className="text-sm text-gray-500">총점</p>
-          <p className="text-2xl font-bold text-[#1E293B]">{state.A5.totalScore}/100</p>
+    <div>
+      <StudentTabs threads={threads} selected={current ?? null} onSelect={setSelected} />
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <div className={`text-4xl font-black ${gradeColor}`}>{a5.grade}</div>
+          <div>
+            <p className="text-sm text-gray-500">총점</p>
+            <p className="text-2xl font-bold text-[#1E293B]">{a5.totalScore}/100</p>
+          </div>
         </div>
+        {a5.evidence?.overall && (
+          <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm text-gray-600 leading-relaxed">
+            {a5.evidence.overall}
+          </div>
+        )}
       </div>
-      {state.A5.evidence?.overall && (
-        <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm text-gray-600 leading-relaxed">
-          {state.A5.evidence.overall}
-        </div>
-      )}
       {status === "approval-needed" && (
         <button
           onClick={() => onApprove()}
           disabled={isRunning}
-          className="px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold text-sm transition-colors"
+          className="mt-4 px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold text-sm transition-colors"
         >
           ✔ 확인하고 생기부 작성
         </button>
@@ -535,28 +597,42 @@ function A5Content({ status, state, isRunning, onRun, onApprove }: {
 function A6Content({ status, state, isRunning, onRun }: {
   status: StageStatus; state: DebateSessionState; isRunning: boolean; onRun: (o?: Record<string, string>) => void;
 }) {
-  if (status === "active") return <RunButton onClick={() => onRun()} isRunning={isRunning} label="▶ 생기부 초안 작성" />;
-  if (!state.A6) return null;
+  const threads = state.A3?.threads ?? [];
+  const [selected, setSelected] = useState<string | null>(threads[0]?.id ?? null);
+
+  if (status === "active") return <RunButton onClick={() => onRun()} isRunning={isRunning} label="▶ 생기부 초안 작성 (5명)" />;
+  if (!state.A6?.perStudent?.length) return null;
+
+  const current = selected ?? threads[0]?.id;
+  const a6 = state.A6.perStudent.find((o) => o.threadId === current);
+  const thread = threads.find((t) => t.id === current);
+  if (!a6) return null;
+
   return (
-    <div className="space-y-4">
-      <div>
-        <p className="text-sm font-semibold text-gray-600 mb-2">누가기록</p>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm text-[#1E293B] leading-relaxed">
-          {state.A6.cumulative}
+    <div>
+      <StudentTabs threads={threads} selected={current ?? null} onSelect={setSelected} />
+      <div className="space-y-4">
+        <div>
+          <p className="text-sm font-semibold text-gray-600 mb-2">누가기록</p>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm text-[#1E293B] leading-relaxed">
+            {a6.cumulative}
+          </div>
         </div>
-      </div>
-      <div>
-        <p className="text-sm font-semibold text-gray-600 mb-2">교과학습발달상황</p>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm text-[#1E293B] leading-relaxed">
-          {state.A6.subjectDev}
+        <div>
+          <p className="text-sm font-semibold text-gray-600 mb-2">교과학습발달상황</p>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm text-[#1E293B] leading-relaxed">
+            {a6.subjectDev}
+          </div>
         </div>
+        <button
+          onClick={() => navigator.clipboard.writeText(
+            `[${thread?.studentLabel ?? `학생${(thread?.index ?? 0) + 1}`}]\n\n[누가기록]\n${a6.cumulative}\n\n[교과학습발달상황]\n${a6.subjectDev}`
+          )}
+          className="px-4 py-2 rounded-xl border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-sm font-medium transition-colors"
+        >
+          📋 이 학생 복사
+        </button>
       </div>
-      <button
-        onClick={() => navigator.clipboard.writeText(`[누가기록]\n${state.A6!.cumulative}\n\n[교과학습발달상황]\n${state.A6!.subjectDev}`)}
-        className="px-4 py-2 rounded-xl border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-sm font-medium transition-colors"
-      >
-        📋 복사
-      </button>
     </div>
   );
 }
