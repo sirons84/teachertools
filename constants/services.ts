@@ -50,6 +50,16 @@ export const SERVICES: ServiceItem[] = [
     color: "indigo",
   },
   {
+    id: "classmate",
+    title: "ClassMate AI",
+    description:
+      "수업용 AI 친구 — 학생이 질문/토론/글쓰기 피드백/아이디어/복습/영어회화 에이전트를 선택해 바로 대화합니다. 로그인 없이 접속 즉시 사용.",
+    icon: "🎒",
+    href: "/classmate",
+    status: "active",
+    color: "indigo",
+  },
+  {
     id: "report-helper",
     title: "생활기록부 도우미",
     description: "AI가 학생 특성에 맞는 생활기록부 문구를 추천합니다.",
