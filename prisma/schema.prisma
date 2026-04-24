@@ -99,6 +99,31 @@ model DebateTurn {
   @@index([sessionId, threadId])
 }
 
+model ClassmateConversation {
+  id        String             @id @default(cuid())
+  browserId String
+  agentId   String
+  title     String
+  messages  ClassmateMessage[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([browserId, updatedAt])
+}
+
+model ClassmateMessage {
+  id             String                @id @default(cuid())
+  conversationId String
+  conversation   ClassmateConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role    String
+  content String @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId])
+}
+
 enum SessionStage {
   A1_READY
   A1_DONE_WAIT_APPROVAL

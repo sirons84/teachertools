@@ -1,0 +1,48 @@
+"use client";
+
+import { useApp } from "../AppContext";
+import AgentList from "./AgentList";
+import ConversationHistory from "./ConversationHistory";
+
+export default function Sidebar() {
+  const { startNewConversation } = useApp();
+
+  return (
+    <aside className="w-[260px] shrink-0 h-screen flex flex-col bg-white/70 backdrop-blur-xl border-r border-slate-200/60">
+      <div className="px-5 py-5">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🎒</span>
+          <span className="font-bold text-lg bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
+            ClassMate AI
+          </span>
+        </div>
+      </div>
+
+      <div className="px-3">
+        <button
+          onClick={startNewConversation}
+          className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition flex items-center gap-2"
+        >
+          <span className="text-lg leading-none">＋</span>
+          <span>새 대화</span>
+        </button>
+      </div>
+
+      <div className="mt-5 px-3">
+        <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">
+          AI 친구 선택
+        </div>
+        <AgentList />
+      </div>
+
+      <div className="mt-5 mx-3 border-t border-slate-200/80" />
+
+      <div className="flex-1 min-h-0 mt-3 px-3 pb-4 overflow-y-auto">
+        <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">
+          최근 대화
+        </div>
+        <ConversationHistory />
+      </div>
+    </aside>
+  );
+}
