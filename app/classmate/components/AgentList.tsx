@@ -3,7 +3,7 @@
 import { useApp } from "../AppContext";
 
 export default function AgentList() {
-  const { agents, currentAgent, selectAgent } = useApp();
+  const { agents, currentAgent, selectAgent, setSidebarOpen } = useApp();
 
   return (
     <ul className="flex flex-col gap-0.5">
@@ -12,7 +12,10 @@ export default function AgentList() {
         return (
           <li key={agent.id}>
             <button
-              onClick={() => selectAgent(agent)}
+              onClick={() => {
+                selectAgent(agent);
+                setSidebarOpen(false);
+              }}
               title={agent.desc}
               className={`w-full text-left flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-all duration-200 ${
                 active

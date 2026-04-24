@@ -31,7 +31,7 @@ function Group({
   label: string;
   items: ClassmateConversationSummary[];
 }) {
-  const { agents, currentConversationId, loadConversation, deleteConversation } = useApp();
+  const { agents, currentConversationId, loadConversation, deleteConversation, setSidebarOpen } = useApp();
   if (items.length === 0) return null;
 
   return (
@@ -44,7 +44,10 @@ function Group({
           return (
             <li key={conv.id} className="group relative">
               <button
-                onClick={() => loadConversation(conv.id)}
+                onClick={() => {
+                  loadConversation(conv.id);
+                  setSidebarOpen(false);
+                }}
                 className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition ${
                   active
                     ? "bg-indigo-50 text-indigo-900"

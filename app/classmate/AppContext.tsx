@@ -49,6 +49,9 @@ interface AppState {
 
   pendingInput: string;
   setPendingInput: (v: string) => void;
+
+  sidebarOpen: boolean;
+  setSidebarOpen: (v: boolean) => void;
 }
 
 const Ctx = createContext<AppState | null>(null);
@@ -73,6 +76,7 @@ export function AppProvider({
   const [conversations, setConversations] = useState<ClassmateConversationSummary[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [pendingInput, setPendingInput] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const streamAbortRef = useRef<AbortController | null>(null);
 
   // Init browserId + restore last agent
@@ -258,6 +262,8 @@ export function AppProvider({
       sendMessage,
       pendingInput,
       setPendingInput,
+      sidebarOpen,
+      setSidebarOpen,
     }),
     [
       agents,
@@ -272,6 +278,7 @@ export function AppProvider({
       deleteConversation,
       sendMessage,
       pendingInput,
+      sidebarOpen,
     ]
   );
 
