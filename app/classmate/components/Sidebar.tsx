@@ -24,7 +24,7 @@ export default function Sidebar() {
             className="rounded-md"
             priority
           />
-          <span className="font-bold text-lg bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
+          <span className="font-bold text-[1.35rem] leading-tight bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
             미래교육창작소
           </span>
         </Link>
