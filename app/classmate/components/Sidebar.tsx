@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useApp } from "../AppContext";
 import AgentList from "./AgentList";
@@ -15,7 +16,14 @@ export default function Sidebar() {
           href="/classmate"
           className="flex items-center gap-2 rounded-lg -mx-1 px-1 py-1 hover:bg-slate-100/60 transition"
         >
-          <span className="text-2xl">🏫</span>
+          <Image
+            src="/robo.png"
+            alt="미래교육창작소"
+            width={28}
+            height={28}
+            className="rounded-md"
+            priority
+          />
           <span className="font-bold text-lg bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
             미래교육창작소
           </span>
