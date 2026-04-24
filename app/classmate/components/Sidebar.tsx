@@ -12,7 +12,7 @@ export default function Sidebar() {
     <aside className="w-[260px] shrink-0 h-screen flex flex-col bg-white/70 backdrop-blur-xl border-r border-slate-200/60">
       <div className="px-5 py-5">
         <Link
-          href="/"
+          href="/classmate"
           className="flex items-center gap-2 rounded-lg -mx-1 px-1 py-1 hover:bg-slate-100/60 transition"
         >
           <span className="text-2xl">🏫</span>
