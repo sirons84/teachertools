@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useApp } from "../AppContext";
 import AgentList from "./AgentList";
 import ConversationHistory from "./ConversationHistory";
@@ -10,12 +11,15 @@ export default function Sidebar() {
   return (
     <aside className="w-[260px] shrink-0 h-screen flex flex-col bg-white/70 backdrop-blur-xl border-r border-slate-200/60">
       <div className="px-5 py-5">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🎒</span>
+        <Link
+          href="/"
+          className="flex items-center gap-2 rounded-lg -mx-1 px-1 py-1 hover:bg-slate-100/60 transition"
+        >
+          <span className="text-2xl">🏫</span>
           <span className="font-bold text-lg bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
-            ClassMate AI
+            미래교육창작소
           </span>
-        </div>
+        </Link>
       </div>
 
       <div className="px-3">
