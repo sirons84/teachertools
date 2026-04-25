@@ -42,8 +42,8 @@ export default function Sidebar() {
           <Image
             src="/robo.png"
             alt="미래교육창작소"
-            width={28}
-            height={28}
+            width={20}
+            height={20}
             className="rounded-md"
             priority
           />
