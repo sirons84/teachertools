@@ -37,17 +37,17 @@ export default function Sidebar() {
         <Link
           href="/classmate"
           onClick={() => setSidebarOpen(false)}
-          className="flex items-center gap-2 rounded-lg -mx-1 px-1 py-1 hover:bg-slate-100/60 transition"
+          className="flex items-center gap-[13px] rounded-lg -mx-1 px-1 py-1 hover:bg-slate-100/60 transition"
         >
           <Image
             src="/robo.png"
             alt="미래교육창작소"
             width={20}
             height={20}
-            className="rounded-md"
+            className="rounded-md block"
             priority
           />
-          <span className="font-bold text-[1.35rem] leading-tight bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
+          <span className="font-bold text-[1.35rem] leading-none bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
             미래교육창작소
           </span>
         </Link>
