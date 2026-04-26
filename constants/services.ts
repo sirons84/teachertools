@@ -53,7 +53,7 @@ export const SERVICES: ServiceItem[] = [
     id: "classmate",
     title: "ClassMate AI",
     description:
-      "수업용 AI 친구 — 학생이 질문/토론/글쓰기 피드백/아이디어/복습/영어회화 에이전트를 선택해 바로 대화합니다. 로그인 없이 접속 즉시 사용.",
+      "수업용 AI 친구 — 학생이 질문/토론/글쓰기 피드백/아이디어/복습/영어회화 에이전트를 선택해 바로 대화합니다. (글쓰기 피드백은 구글 로그인 필요)",
     icon: "🎒",
     href: "/classmate",
     status: "active",

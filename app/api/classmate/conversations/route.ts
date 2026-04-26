@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { auth } from "@/auth";
+
+const LOGIN_REQUIRED_AGENTS = ["feedback"];
 
 export async function GET(req: NextRequest) {
   const browserId = req.nextUrl.searchParams.get("browserId");
@@ -10,8 +13,20 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
+
+  const where = userId
+    ? {
+        OR: [
+          { browserId, agentId: { notIn: LOGIN_REQUIRED_AGENTS } },
+          { userId, agentId: { in: LOGIN_REQUIRED_AGENTS } },
+        ],
+      }
+    : { browserId, agentId: { notIn: LOGIN_REQUIRED_AGENTS } };
+
   const rows = await prisma.classmateConversation.findMany({
-    where: { browserId },
+    where,
     orderBy: { updatedAt: "desc" },
     select: {
       id: true,

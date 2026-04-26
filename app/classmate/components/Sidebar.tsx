@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useApp } from "../AppContext";
 import AgentList from "./AgentList";
 import ConversationHistory from "./ConversationHistory";
+import AuthPanel from "./AuthPanel";
 
 export default function Sidebar() {
   const { startNewConversation, sidebarOpen, setSidebarOpen } = useApp();
@@ -81,11 +82,15 @@ export default function Sidebar() {
 
       <div className="mt-5 mx-3 border-t border-slate-200/80" />
 
-      <div className="flex-1 min-h-0 mt-3 px-3 pb-4 overflow-y-auto">
+      <div className="flex-1 min-h-0 mt-3 px-3 overflow-y-auto">
         <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">
           최근 대화
         </div>
         <ConversationHistory />
+      </div>
+
+      <div className="border-t border-slate-200/80">
+        <AuthPanel />
       </div>
       </aside>
     </>

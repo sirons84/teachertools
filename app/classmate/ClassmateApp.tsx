@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import type { ClassmateAgent } from "@/types/classmate";
 import { AppProvider, useApp } from "./AppContext";
 import Sidebar from "./components/Sidebar";
@@ -7,21 +8,31 @@ import ChatHeader from "./components/ChatHeader";
 import WelcomeScreen from "./components/WelcomeScreen";
 import MessageList from "./components/MessageList";
 import ChatInput from "./components/ChatInput";
+import SignInGate from "./components/SignInGate";
+import { LOGIN_REQUIRED_AGENT_IDS } from "@/lib/classmate-auth";
 
 function MainArea() {
   const { currentAgent, messages } = useApp();
+  const { status } = useSession();
+
+  const needsLogin =
+    !!currentAgent &&
+    LOGIN_REQUIRED_AGENT_IDS.has(currentAgent.id) &&
+    status !== "authenticated";
 
   return (
     <div className="flex-1 flex flex-col h-screen min-w-0">
       <ChatHeader />
       <div className="flex-1 overflow-y-auto">
-        {!currentAgent || messages.length === 0 ? (
+        {needsLogin ? (
+          <SignInGate />
+        ) : !currentAgent || messages.length === 0 ? (
           <WelcomeScreen />
         ) : (
           <MessageList />
         )}
       </div>
-      <ChatInput />
+      {!needsLogin && <ChatInput />}
     </div>
   );
 }

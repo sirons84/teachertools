@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getOpenAI } from "@/lib/openai";
 import { getAgentById } from "@/lib/classmate-agents";
+import { auth } from "@/auth";
 
 export const maxDuration = 60;
+
+const LOGIN_REQUIRED_AGENTS = new Set(["feedback"]);
 
 interface ChatRequestBody {
   browserId: string;
@@ -37,13 +40,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const requiresLogin = LOGIN_REQUIRED_AGENTS.has(agentId);
+    const session = requiresLogin ? await auth() : null;
+    const userId = session?.user?.id ?? null;
+
+    if (requiresLogin && !userId) {
+      return NextResponse.json(
+        { success: false, error: "로그인이 필요합니다." },
+        { status: 401 }
+      );
+    }
+
     let convId = conversationId;
     if (convId) {
       const existing = await prisma.classmateConversation.findUnique({
         where: { id: convId },
-        select: { id: true, browserId: true },
+        select: { id: true, browserId: true, userId: true, agentId: true },
       });
-      if (!existing || existing.browserId !== browserId) {
+      if (!existing) {
+        return NextResponse.json(
+          { success: false, error: "대화를 찾을 수 없습니다." },
+          { status: 404 }
+        );
+      }
+      const ownsByUser = userId && existing.userId === userId;
+      const ownsByBrowser =
+        !LOGIN_REQUIRED_AGENTS.has(existing.agentId) &&
+        existing.browserId === browserId;
+      if (!ownsByUser && !ownsByBrowser) {
         return NextResponse.json(
           { success: false, error: "대화를 찾을 수 없습니다." },
           { status: 404 }
@@ -55,6 +79,7 @@ export async function POST(req: NextRequest) {
           browserId,
           agentId,
           title: makeTitle(message),
+          userId,
         },
         select: { id: true },
       });

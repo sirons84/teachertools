@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { auth } from "@/auth";
+
+const LOGIN_REQUIRED_AGENTS = new Set(["feedback"]);
+
+function canAccess(
+  conv: { browserId: string; userId: string | null; agentId: string },
+  browserId: string,
+  userId: string | null
+): boolean {
+  if (LOGIN_REQUIRED_AGENTS.has(conv.agentId)) {
+    return !!userId && conv.userId === userId;
+  }
+  return conv.browserId === browserId;
+}
 
 export async function GET(
   req: NextRequest,
@@ -14,6 +28,9 @@ export async function GET(
     );
   }
 
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
+
   const conv = await prisma.classmateConversation.findUnique({
     where: { id },
     include: {
@@ -21,7 +38,7 @@ export async function GET(
     },
   });
 
-  if (!conv || conv.browserId !== browserId) {
+  if (!conv || !canAccess(conv, browserId, userId)) {
     return NextResponse.json(
       { success: false, error: "대화를 찾을 수 없습니다." },
       { status: 404 }
@@ -58,12 +75,15 @@ export async function DELETE(
     );
   }
 
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
+
   const conv = await prisma.classmateConversation.findUnique({
     where: { id },
-    select: { browserId: true },
+    select: { browserId: true, userId: true, agentId: true },
   });
 
-  if (!conv || conv.browserId !== browserId) {
+  if (!conv || !canAccess(conv, browserId, userId)) {
     return NextResponse.json(
       { success: false, error: "대화를 찾을 수 없습니다." },
       { status: 404 }
