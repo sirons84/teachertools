@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_APP_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "티처툴즈 (TeacherTools)",
     template: "%s | 티처툴즈",
@@ -14,6 +19,12 @@ export const metadata: Metadata = {
     description: "선생님을 위한 스마트 도구 모음",
     locale: "ko_KR",
     type: "website",
+    siteName: "티처툴즈",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "티처툴즈 (TeacherTools)",
+    description: "선생님을 위한 스마트 도구 모음",
   },
 };
 
