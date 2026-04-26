@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import type { ClassmateAgent } from "@/types/classmate";
 import { AppProvider, useApp } from "./AppContext";
@@ -14,17 +15,20 @@ import { LOGIN_REQUIRED_AGENT_IDS } from "@/lib/classmate-auth";
 function MainArea() {
   const { currentAgent, messages } = useApp();
   const { status } = useSession();
+  const [authPromptRequested, setAuthPromptRequested] = useState(false);
 
-  const needsLogin =
+  const requireAuth =
     !!currentAgent &&
     LOGIN_REQUIRED_AGENT_IDS.has(currentAgent.id) &&
     status !== "authenticated";
+
+  const showAuthPrompt = requireAuth && authPromptRequested;
 
   return (
     <div className="flex-1 flex flex-col h-screen min-w-0">
       <ChatHeader />
       <div className="flex-1 overflow-y-auto">
-        {needsLogin ? (
+        {showAuthPrompt ? (
           <SignInGate />
         ) : !currentAgent || messages.length === 0 ? (
           <WelcomeScreen />
@@ -32,7 +36,13 @@ function MainArea() {
           <MessageList />
         )}
       </div>
-      {!needsLogin && <ChatInput />}
+      {!showAuthPrompt && (
+        <ChatInput
+          onAuthRequired={
+            requireAuth ? () => setAuthPromptRequested(true) : undefined
+          }
+        />
+      )}
     </div>
   );
 }

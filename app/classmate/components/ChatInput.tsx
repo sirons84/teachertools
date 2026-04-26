@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../AppContext";
 
-export default function ChatInput() {
+export default function ChatInput({
+  onAuthRequired,
+}: {
+  onAuthRequired?: () => void;
+}) {
   const {
     currentAgent,
     isStreaming,
@@ -37,6 +41,10 @@ export default function ChatInput() {
   const submit = () => {
     const value = pendingInput.trim();
     if (!value || disabled) return;
+    if (onAuthRequired) {
+      onAuthRequired();
+      return;
+    }
     setPendingInput("");
     sendMessage(value);
   };
