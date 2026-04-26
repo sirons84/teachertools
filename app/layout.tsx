@@ -20,11 +20,20 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     type: "website",
     siteName: "티처툴즈",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "티처툴즈 — 선생님을 위한 스마트 도구 모음",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "티처툴즈 (TeacherTools)",
     description: "선생님을 위한 스마트 도구 모음",
+    images: ["/og-image.png"],
   },
 };
 
