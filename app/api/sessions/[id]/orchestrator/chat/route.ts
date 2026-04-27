@@ -154,10 +154,13 @@ function buildStateContext(state: DebateSessionState, stage: string): string {
   const lines: string[] = [];
   lines.push(`## 현재 세션 상태`);
   lines.push(`- 단계: ${stage}`);
-  if (state.meta?.topic) {
-    lines.push(`- 주제: ${state.meta.topic}`);
+  if (state.meta?.topic || state.meta?.grade) {
+    lines.push(`- 주제: ${state.meta.topic || "(미설정)"}`);
     if (state.meta.grade) lines.push(`- 학년: ${state.meta.grade}`);
+    if (state.meta.semester) lines.push(`- 학기: ${state.meta.semester}`);
     if (state.meta.subject) lines.push(`- 교과: ${state.meta.subject}`);
+    if (state.meta.publisher) lines.push(`- 교과서: ${state.meta.publisher}`);
+    if (state.meta.mainUnit) lines.push(`- 대단원: ${state.meta.mainUnit}`);
   } else {
     lines.push(`- 주제: (미설정)`);
   }

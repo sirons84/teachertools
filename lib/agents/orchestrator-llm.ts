@@ -7,6 +7,7 @@ import { runA4 } from "@/lib/agents/a4-observe";
 import { runA5 } from "@/lib/agents/a5-evaluate";
 import { runA6 } from "@/lib/agents/a6-record";
 import { applyActions } from "@/lib/orchestrator/actions";
+import { lookupTextbook, lookupAchievements } from "@/lib/curriculum";
 import {
   MVP_THREAD_COUNT,
   type DebateSessionState,
@@ -34,15 +35,65 @@ export const ORCHESTRATOR_TOOLS: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "set_topic",
-      description: "수업 주제·학년·교과를 등록합니다. 첫 대화에서 교사가 알려준 정보를 저장할 때 사용합니다.",
+      description:
+        "수업 주제·학년·교과·학기·교과서·대단원을 등록·갱신합니다. 부분 갱신을 지원하므로 알게 된 정보부터 저장하세요. 기존 값은 새 값으로만 덮어씁니다.",
       parameters: {
         type: "object",
         properties: {
           topic: { type: "string", description: "수업 주제 (예: '민주주의에서 다수결의 한계')" },
-          grade: { type: "string", description: "학년 (예: '초5', '중2', '고1'). 모르면 생략." },
+          grade: { type: "string", description: "학년 (예: '초5', '3학년'). 모르면 생략." },
           subject: { type: "string", description: "교과 (예: '사회', '국어'). 모르면 생략." },
+          semester: { type: "string", description: "학기 ('1학기' | '2학기'). 모르면 생략." },
+          publisher: {
+            type: "string",
+            description: "교과서 출판사 ('국정' 또는 '미래엔', '비상교육', '천재교과서' 등). 모르면 생략.",
+          },
+          mainUnit: {
+            type: "string",
+            description: "교과서 대단원명 (예: '1. 우리가 사는 곳'). 모르면 생략.",
+          },
         },
-        required: ["topic"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "lookup_textbook_units",
+      description:
+        "초등 교과서의 대단원 목록을 조회합니다. 출판사를 생략하면 검정 교과의 출판사 목록을 반환하고, 출판사를 지정하거나 국정이면 대단원 목록을 반환합니다. 첫 대화에서 학년·학기·교과를 들었을 때 호출해 교사가 어떤 단원을 다룰지 확인하세요.",
+      parameters: {
+        type: "object",
+        properties: {
+          grade: { type: "string", description: "초등 학년 (예: '3학년', '초3')" },
+          semester: { type: "string", description: "학기 ('1학기' | '2학기')" },
+          subject: { type: "string", description: "교과 (예: '국어', '사회', '수학', '과학')" },
+          publisher: {
+            type: "string",
+            description: "출판사 (검정 교과 한정, 예: '미래엔'). 비우면 출판사 목록을 받습니다.",
+          },
+        },
+        required: ["grade", "semester", "subject"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "lookup_achievements",
+      description:
+        "해당 학년군·교과의 2022 개정 성취기준을 조회합니다. 지도안 작성을 위해 사전에 호출하거나, 교사가 성취기준을 보고 싶다고 할 때 사용합니다. 학년은 학년군(1~2/3~4/5~6학년군)으로 자동 매핑됩니다.",
+      parameters: {
+        type: "object",
+        properties: {
+          grade: { type: "string", description: "초등 학년 (예: '3학년')" },
+          subject: { type: "string", description: "교과 (예: '사회', '국어')" },
+          domain: {
+            type: "string",
+            description: "선택: 영역 필터 (예: '듣기⋅말하기'). 비우면 전체.",
+          },
+        },
+        required: ["grade", "subject"],
       },
     },
   },
@@ -238,24 +289,94 @@ const TOOL_HANDLERS: Record<
   (args: Record<string, unknown>, ctx: ExecContext) => Promise<ToolExecutionResult>
 > = {
   async set_topic(args, ctx) {
-    const topic = String(args.topic ?? "").trim();
-    if (!topic) return { ok: false, summary: "topic이 비어 있습니다." };
-    const grade = typeof args.grade === "string" ? args.grade : undefined;
-    const subject = typeof args.subject === "string" ? args.subject : undefined;
-
     const { state } = await loadState(ctx.sessionId);
+    const prev = state.meta ?? { topic: "" };
+
+    const pickStr = (k: string) => (typeof args[k] === "string" && (args[k] as string).trim() ? (args[k] as string).trim() : undefined);
+    const topic = pickStr("topic") ?? prev.topic ?? "";
+    const grade = pickStr("grade") ?? prev.grade;
+    const subject = pickStr("subject") ?? prev.subject;
+    const semester = pickStr("semester") ?? prev.semester;
+    const publisher = pickStr("publisher") ?? prev.publisher;
+    const mainUnit = pickStr("mainUnit") ?? prev.mainUnit;
+
     const newState: DebateSessionState = {
       ...state,
-      meta: { topic, grade, subject },
+      meta: { topic, grade, subject, semester, publisher, mainUnit },
     };
     await prisma.debateSession.update({
       where: { id: ctx.sessionId },
-      data: { state: toJson(newState), topic, grade: grade ?? null, subject: subject ?? null },
+      data: {
+        state: toJson(newState),
+        topic: topic || "(작성 중)",
+        grade: grade ?? null,
+        subject: subject ?? null,
+      },
     });
+    const parts = [
+      topic ? `주제 "${topic}"` : null,
+      grade,
+      semester,
+      subject,
+      publisher && publisher !== "국정" ? `${publisher} 교과서` : null,
+      mainUnit,
+    ].filter(Boolean);
     return {
       ok: true,
-      summary: `주제 "${topic}" 등록${grade ? ` (학년 ${grade})` : ""}${subject ? ` (교과 ${subject})` : ""}`,
-      data: { topic, grade, subject },
+      summary: `등록: ${parts.join(" / ")}`,
+      data: { topic, grade, subject, semester, publisher, mainUnit },
+    };
+  },
+
+  async lookup_textbook_units(args) {
+    const grade = String(args.grade ?? "").trim();
+    const semester = String(args.semester ?? "").trim();
+    const subject = String(args.subject ?? "").trim();
+    const publisher = typeof args.publisher === "string" ? args.publisher.trim() : undefined;
+    if (!grade || !semester || !subject) {
+      return { ok: false, summary: "grade/semester/subject가 필요합니다." };
+    }
+    const result = await lookupTextbook(grade, semester, subject, publisher || undefined);
+    if (result.kind === "unknown") {
+      return { ok: false, summary: result.reason, data: result };
+    }
+    if (result.kind === "국정") {
+      return {
+        ok: true,
+        summary: `국정 ${grade} ${semester} ${subject} 대단원 ${result.units.length}개`,
+        data: result,
+      };
+    }
+    if (!result.units) {
+      return {
+        ok: true,
+        summary: `검정 교과 — 출판사 선택 필요 (${result.publishers.join(", ")})`,
+        data: result,
+      };
+    }
+    return {
+      ok: true,
+      summary: `${result.publisher} ${grade} ${semester} ${subject} 대단원 ${result.units.length}개`,
+      data: result,
+    };
+  },
+
+  async lookup_achievements(args) {
+    const grade = String(args.grade ?? "").trim();
+    const subject = String(args.subject ?? "").trim();
+    const domain = typeof args.domain === "string" ? args.domain.trim() : undefined;
+    if (!grade || !subject) return { ok: false, summary: "grade/subject가 필요합니다." };
+    const items = await lookupAchievements(grade, subject, domain || undefined);
+    if (items.length === 0) {
+      return {
+        ok: false,
+        summary: `${grade} ${subject}${domain ? ` ${domain}` : ""} 성취기준을 찾지 못했습니다.`,
+      };
+    }
+    return {
+      ok: true,
+      summary: `성취기준 ${items.length}개 조회`,
+      data: { items },
     };
   },
 

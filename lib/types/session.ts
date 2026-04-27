@@ -71,7 +71,14 @@ export interface StudentA6 {
 
 export interface DebateSessionState {
   sessionId: string;
-  meta: { topic: string; grade?: string; subject?: string };
+  meta: {
+    topic: string;
+    grade?: string;
+    subject?: string;
+    semester?: string;
+    publisher?: string;
+    mainUnit?: string;
+  };
   A1?: {
     problems: Problem[];
     chosen?: string;
