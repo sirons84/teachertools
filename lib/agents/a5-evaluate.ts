@@ -8,6 +8,7 @@ async function evaluateOne(
   rubric: RubricSchema | undefined,
   obs: StudentObservation,
   teacherNotes: string[],
+  override: "상" | "중" | "하" | undefined,
 ): Promise<StudentA5> {
   const user = `
 ## 루브릭 기준
@@ -23,7 +24,8 @@ ${rubric?.criteria.map((c) => `- ${c.name}(${c.id}): ${c.descriptor}`).join("\n"
 ## 인용 근거
 ${Object.entries(obs.quotes ?? {}).map(([k, v]) => `- ${k}: "${v}"`).join("\n")}
 
-${teacherNotes.length ? `## 교사 정성 피드백 (중요 — 평가에 반드시 반영)\n${teacherNotes.map((n) => `- ${n}`).join("\n")}\n` : ""}`.trim();
+${teacherNotes.length ? `## 교사 정성 피드백 (중요 — 평가에 반드시 반영)\n${teacherNotes.map((n) => `- ${n}`).join("\n")}\n` : ""}
+${override ? `## 교사 최종 등급 지정 (override)\n- 최종 grade는 반드시 "${override}"로 출력합니다.\n- totalScore와 evidence 5개 항목·overall은 모두 "${override}" 등급에 정합되게 재구성하세요. 관찰 점수가 낮더라도 교사 지정 등급이 우선이며, 교사 정성 피드백(있으면)을 근거로 그 등급을 정당화하는 방식으로 작성합니다.\n` : ""}`.trim();
 
   const raw = await callClaude({ system, user, responseFormat: "json" });
   return JSON.parse(raw) as StudentA5;
@@ -39,7 +41,7 @@ export async function runA5(session: DebateSessionState): Promise<DebateSessionS
     observations.map(async (obs) => {
       const notes = session.teacherNotes?.[obs.threadId] ?? [];
       const override = session.gradeOverrides?.[obs.threadId];
-      const result = await evaluateOne(system, session.A2?.rubric, obs, notes);
+      const result = await evaluateOne(system, session.A2?.rubric, obs, notes, override);
       const evidence = notes.length
         ? { ...result.evidence, teacherNote: notes.join(" / ") }
         : result.evidence;
