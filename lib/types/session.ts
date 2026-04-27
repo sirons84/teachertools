@@ -108,6 +108,13 @@ export interface OrchestratorMessage {
   text: string;
   ts: string;
   actions?: OrchestratorAction[];
+  toolCalls?: OrchestratorToolCall[];
+}
+
+export interface OrchestratorToolCall {
+  name: string;
+  status: "ok" | "error";
+  summary?: string;
 }
 
 export type OrchestratorAction =
