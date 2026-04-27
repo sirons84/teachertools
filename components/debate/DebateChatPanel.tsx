@@ -370,7 +370,7 @@ function LessonPlanAttachment({ a2 }: { a2: NonNullable<DebateSessionState["A2"]
         onClick={() => setOpen(!open)}
         className="w-full px-4 py-3 flex items-center justify-between text-left"
       >
-        <span className="text-sm font-semibold text-[#1E293B]">📝 지도안·활동지 양식·루브릭</span>
+        <span className="text-sm font-semibold text-[#1E293B]">📝 지도안·루브릭</span>
         <span className="text-gray-400">{open ? "▲" : "▼"}</span>
       </button>
       {open && (
@@ -384,15 +384,6 @@ function LessonPlanAttachment({ a2 }: { a2: NonNullable<DebateSessionState["A2"]
               [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-2
               [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{a2.lessonPlan}</ReactMarkdown>
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-500 mb-2">활동지 양식</p>
-            <div className="prose prose-sm max-w-none max-h-[20rem] overflow-y-auto
-              [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-2
-              [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1
-              [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-200 [&_blockquote]:bg-indigo-50/40 [&_blockquote]:px-3 [&_blockquote]:py-2 [&_blockquote]:rounded-r [&_blockquote]:my-2 [&_blockquote]:text-gray-600">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{a2.worksheet || a2.twoWayTable || ""}</ReactMarkdown>
             </div>
           </div>
           <div>
