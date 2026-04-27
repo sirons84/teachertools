@@ -86,7 +86,9 @@ export interface DebateSessionState {
   A2?: {
     lessonPlan: string;
     rubric: RubricSchema;
-    twoWayTable: string;
+    worksheet: string;
+    /** @deprecated 구버전 세션 호환용 */
+    twoWayTable?: string;
   };
   A3?: {
     level: "초급" | "중급" | "고급";

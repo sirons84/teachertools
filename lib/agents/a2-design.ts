@@ -34,6 +34,6 @@ export async function runA2(session: DebateSessionState): Promise<DebateSessionS
     .filter(Boolean)
     .join("\n");
 
-  const raw = await callClaude({ system, user, responseFormat: "json", maxTokens: 6000 });
+  const raw = await callClaude({ system, user, responseFormat: "json", maxTokens: 8000 });
   return JSON.parse(raw) as NonNullable<DebateSessionState["A2"]>;
 }

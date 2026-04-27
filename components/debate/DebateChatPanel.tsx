@@ -122,7 +122,7 @@ export default function DebateChatPanel({ sessionId, state, stage, onUpdate }: P
                 send(input);
               }
             }}
-            placeholder={hasTopic ? "오케스트레이터에게 자연어로 말해보세요..." : "수업 주제를 입력해보세요. 예: 민주주의에서 다수결의 한계 (학년·교과도 함께)"}
+            placeholder={hasTopic ? "오케스트레이터에게 자연어로 말해보세요..." : "수업 주제를 입력해보세요. 예: 초3 1학기 사회, 우리 동네 개발과 환경 보호"}
             disabled={sending}
             className="flex-1 px-4 py-3 rounded-xl border-2 border-indigo-200 focus:border-indigo-500 focus:outline-none text-sm bg-white disabled:bg-gray-50"
           />
@@ -148,8 +148,10 @@ function WelcomeMessage({ hasTopic, state }: { hasTopic: boolean; state: DebateS
           <p className="font-bold text-indigo-700 mb-1">AI 토론 수업 오케스트레이터</p>
           {!hasTopic ? (
             <p>
-              안녕하세요! 어떤 주제로 토론 수업을 만드시나요? 학년·교과도 함께 알려주시면 더 잘 맞춰
-              드릴 수 있어요. (예: <span className="text-indigo-700 font-medium">&ldquo;중2 사회, 다수결의 한계&rdquo;</span>)
+              안녕하세요! 어떤 학년·학기·교과로 토론 수업을 만드시나요? 주제까지 함께 알려주시면 더 잘 맞춰
+              드릴 수 있어요. (예: <span className="text-indigo-700 font-medium">&ldquo;초3 1학기 사회, 우리 동네 개발과 환경 보호&rdquo;</span>)
+              <br />
+              <span className="text-xs text-gray-500">현재는 초등(1~6학년) 교과서 단원·성취기준만 자동 조회됩니다.</span>
             </p>
           ) : (
             <p>
@@ -368,7 +370,7 @@ function LessonPlanAttachment({ a2 }: { a2: NonNullable<DebateSessionState["A2"]
         onClick={() => setOpen(!open)}
         className="w-full px-4 py-3 flex items-center justify-between text-left"
       >
-        <span className="text-sm font-semibold text-[#1E293B]">📝 지도안·루브릭·이원목적분류표</span>
+        <span className="text-sm font-semibold text-[#1E293B]">📝 지도안·활동지 양식·루브릭</span>
         <span className="text-gray-400">{open ? "▲" : "▼"}</span>
       </button>
       {open && (
@@ -385,6 +387,15 @@ function LessonPlanAttachment({ a2 }: { a2: NonNullable<DebateSessionState["A2"]
             </div>
           </div>
           <div>
+            <p className="text-xs font-semibold text-gray-500 mb-2">활동지 양식</p>
+            <div className="prose prose-sm max-w-none max-h-[20rem] overflow-y-auto
+              [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-2
+              [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1
+              [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-200 [&_blockquote]:bg-indigo-50/40 [&_blockquote]:px-3 [&_blockquote]:py-2 [&_blockquote]:rounded-r [&_blockquote]:my-2 [&_blockquote]:text-gray-600">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{a2.worksheet || a2.twoWayTable || ""}</ReactMarkdown>
+            </div>
+          </div>
+          <div>
             <p className="text-xs font-semibold text-gray-500 mb-2">루브릭</p>
             <div className="space-y-1.5">
               {a2.rubric.criteria.map((c) => (
@@ -393,17 +404,9 @@ function LessonPlanAttachment({ a2 }: { a2: NonNullable<DebateSessionState["A2"]
                     <span className="font-semibold">{c.name}</span>
                     <span className="text-gray-400">{c.max}점</span>
                   </div>
-                  <p className="text-[11px] text-gray-600 mt-0.5">{c.descriptor}</p>
+                  <p className="text-[11px] text-gray-600 mt-0.5 whitespace-pre-line">{c.descriptor}</p>
                 </div>
               ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-500 mb-2">이원목적분류표</p>
-            <div className="prose prose-sm max-w-none
-              [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-50 [&_th]:px-2 [&_th]:py-1 [&_th]:text-xs
-              [&_td]:border [&_td]:border-gray-200 [&_td]:px-2 [&_td]:py-1 [&_td]:text-xs">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{a2.twoWayTable}</ReactMarkdown>
             </div>
           </div>
         </div>
