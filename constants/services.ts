@@ -21,16 +21,6 @@ export const SERVICES: ServiceItem[] = [
     color: "blue",
   },
   {
-    id: "economy-class",
-    title: "단단반 경제교실",
-    description: "학생들이 직접 경험하는 경제 교육 플랫폼입니다. 실생활 경제 개념을 재미있게 배울 수 있습니다.",
-    icon: "💰",
-    href: "https://tax-ashy.vercel.app/",
-    external: true,
-    status: "active",
-    color: "green",
-  },
-  {
     id: "question-class",
     title: "질문있는 교실",
     description: "학생들이 자유롭게 질문하고 함께 답을 찾아가는 참여형 수업 도구입니다.",
