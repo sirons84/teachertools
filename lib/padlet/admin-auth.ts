@@ -5,9 +5,9 @@ const COOKIE_NAME = "padlet_admin";
 const MAX_AGE_SEC = 60 * 60 * 24 * 7; // 7일
 
 function secret(): string {
-  const s = process.env.AUTH_SECRET || process.env.ADMIN_PASSWORD;
+  const s = process.env.AUTH_SECRET || process.env.PADLET_ADMIN_PASSWORD;
   if (!s) {
-    throw new Error("AUTH_SECRET 또는 ADMIN_PASSWORD 환경변수가 필요합니다.");
+    throw new Error("AUTH_SECRET 또는 PADLET_ADMIN_PASSWORD 환경변수가 필요합니다.");
   }
   return s;
 }
@@ -38,7 +38,7 @@ function verifyToken(token: string | undefined): boolean {
 }
 
 export function checkPassword(input: string): boolean {
-  const expected = process.env.ADMIN_PASSWORD;
+  const expected = process.env.PADLET_ADMIN_PASSWORD;
   if (!expected) return false;
   if (input.length !== expected.length) return false;
   return crypto.timingSafeEqual(Buffer.from(input), Buffer.from(expected));

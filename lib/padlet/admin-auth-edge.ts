@@ -4,8 +4,8 @@
 const MAX_AGE_SEC = 60 * 60 * 24 * 7;
 
 function getSecret(): string {
-  const s = process.env.AUTH_SECRET || process.env.ADMIN_PASSWORD;
-  if (!s) throw new Error("AUTH_SECRET 또는 ADMIN_PASSWORD가 필요합니다.");
+  const s = process.env.AUTH_SECRET || process.env.PADLET_ADMIN_PASSWORD;
+  if (!s) throw new Error("AUTH_SECRET 또는 PADLET_ADMIN_PASSWORD가 필요합니다.");
   return s;
 }
 

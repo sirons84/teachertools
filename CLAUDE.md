@@ -52,7 +52,7 @@ BLOB_READ_WRITE_TOKEN= # Vercel Blob 토큰
 NEXT_PUBLIC_APP_URL=   # 앱 URL (QR 코드 생성용)
 
 # 포스트잇 협업 보드 (padlet) 전용
-ADMIN_PASSWORD=        # 관리자 로그인 비밀번호
+PADLET_ADMIN_PASSWORD= # 포스트잇 협업 보드 관리자 로그인 비밀번호
 AUTH_SECRET=           # 쿠키 서명 시크릿 (openssl rand -base64 32)
 ```
 
@@ -67,9 +67,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 ## 포스트잇 협업 보드 (padlet)
 - 진입점: `/services/padlet`
-- 관리자: `/services/padlet/admin` (비밀번호 로그인, `ADMIN_PASSWORD` env로 설정)
+- 관리자: `/services/padlet/admin` (비밀번호 로그인, `PADLET_ADMIN_PASSWORD` env로 설정)
 - 공개 보드: `/services/padlet/b/[slug]` — 자유 캔버스(데스크탑) / 그리드(모바일)
 - 익명 참여자는 닉네임 쿠키만으로 글/이미지/파일/링크 카드를 작성하고 이모지·댓글로 반응
 - 관리자 인증 경로 보호는 `proxy.ts` (Next.js 16에서 `middleware`는 deprecated → `proxy` 권장)
 - 의존성: `@dnd-kit/core`, `@dnd-kit/utilities`, `swr`, `nanoid`
-- 새 의존성 또는 권한 변경 시: 환경변수에 `ADMIN_PASSWORD`, `AUTH_SECRET` 필요
+- 새 의존성 또는 권한 변경 시: 환경변수에 `PADLET_ADMIN_PASSWORD`, `AUTH_SECRET` 필요
