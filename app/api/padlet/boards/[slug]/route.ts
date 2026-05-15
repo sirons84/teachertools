@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionIdReadOnly } from "@/lib/padlet/session";
+import { normalizeSlug } from "@/lib/padlet/slug";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
@@ -8,7 +9,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   const { slug } = await params;
   const mySessionId = await getSessionIdReadOnly();
   const board = await prisma.padletBoard.findUnique({
-    where: { slug },
+    where: { slug: normalizeSlug(slug) },
     include: {
       posts: {
         orderBy: { createdAt: "asc" },

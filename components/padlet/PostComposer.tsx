@@ -143,7 +143,7 @@ export default function PostComposer({
           throw new Error(data?.error ?? "수정 실패");
         }
       } else {
-        const res = await fetch(`/api/padlet/boards/${boardSlug}/posts`, {
+        const res = await fetch(`/api/padlet/boards/${encodeURIComponent(boardSlug)}/posts`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({

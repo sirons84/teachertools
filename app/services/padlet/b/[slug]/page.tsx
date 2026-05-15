@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Header from "@/components/layout/Header";
 import { prisma } from "@/lib/db";
 import { getNickname } from "@/lib/padlet/session";
+import { normalizeSlug } from "@/lib/padlet/slug";
 import BoardClient from "@/components/padlet/BoardClient";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const board = await prisma.padletBoard.findUnique({
-    where: { slug },
+    where: { slug: normalizeSlug(slug) },
     select: { title: true, description: true },
   });
   if (!board) return { title: "보드를 찾을 수 없습니다" };
@@ -31,7 +32,7 @@ export default async function PublicBoardPage({
 }) {
   const { slug } = await params;
   const board = await prisma.padletBoard.findUnique({
-    where: { slug },
+    where: { slug: normalizeSlug(slug) },
     select: {
       id: true,
       slug: true,

@@ -60,7 +60,7 @@ export default function BoardClient({
 
   // SWR 폴링 (상호작용 중에는 정지)
   const { data, mutate } = useSWR<BoardData>(
-    `/api/padlet/boards/${board.slug}`,
+    `/api/padlet/boards/${encodeURIComponent(board.slug)}`,
     fetcher,
     {
       refreshInterval: isInteracting ? 0 : 5000,

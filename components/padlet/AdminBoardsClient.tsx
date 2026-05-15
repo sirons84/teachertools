@@ -71,7 +71,7 @@ export default function AdminBoardsClient({ initialBoards }: { initialBoards: Ad
   };
 
   const copyLink = async (slug: string) => {
-    const url = `${window.location.origin}/services/padlet/b/${slug}`;
+    const url = `${window.location.origin}/services/padlet/b/${encodeURIComponent(slug)}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(slug);

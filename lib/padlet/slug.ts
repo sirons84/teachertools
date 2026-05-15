@@ -22,3 +22,15 @@ export function generateSlug(title: string): string {
 export function isValidSlug(v: unknown): v is string {
   return typeof v === "string" && /^[a-z0-9가-힣][a-z0-9가-힣-]{1,60}$/.test(v);
 }
+
+// URL에서 들어온 slug 정규화 — percent-encoded 또는 NFD 한글이 들어와도
+// DB에 저장된 NFKC 형태와 매칭되도록 보정한다.
+export function normalizeSlug(raw: string): string {
+  let s = raw;
+  try {
+    s = decodeURIComponent(s);
+  } catch {
+    // 이미 디코드되어 있으면 무시
+  }
+  return s.normalize("NFKC");
+}

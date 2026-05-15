@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getOrCreateSessionId, isValidNickname, setNickname } from "@/lib/padlet/session";
 import { isValidPostColor, randomPostColor } from "@/lib/padlet/colors";
+import { normalizeSlug } from "@/lib/padlet/slug";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
@@ -45,7 +46,7 @@ function sanitizeAttachments(value: unknown): AttachmentInput[] {
 
 export async function POST(req: NextRequest, { params }: Ctx) {
   const { slug } = await params;
-  const board = await prisma.padletBoard.findUnique({ where: { slug } });
+  const board = await prisma.padletBoard.findUnique({ where: { slug: normalizeSlug(slug) } });
   if (!board || board.isArchived) {
     return NextResponse.json({ error: "보드를 찾을 수 없습니다." }, { status: 404 });
   }

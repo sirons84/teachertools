@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { prisma } from "@/lib/db";
+import { normalizeSlug } from "@/lib/padlet/slug";
 import BoardClient from "@/components/padlet/BoardClient";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const board = await prisma.padletBoard.findUnique({ where: { slug }, select: { title: true } });
+  const board = await prisma.padletBoard.findUnique({ where: { slug: normalizeSlug(slug) }, select: { title: true } });
   return { title: board ? `[관리] ${board.title}` : "관리자 보드" };
 }
 
@@ -24,7 +25,7 @@ export default async function PadletAdminBoardPage({
 }) {
   const { slug } = await params;
   const board = await prisma.padletBoard.findUnique({
-    where: { slug },
+    where: { slug: normalizeSlug(slug) },
     select: { id: true, slug: true, title: true, description: true, bgColor: true },
   });
   if (!board) notFound();
