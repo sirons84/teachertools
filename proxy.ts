@@ -3,7 +3,10 @@ import { verifyAdminTokenAsync, ADMIN_COOKIE_NAME } from "@/lib/padlet/admin-aut
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const isApi = pathname.startsWith("/api/padlet/admin");
+  const isApi =
+    pathname.startsWith("/api/padlet/admin") &&
+    pathname !== "/api/padlet/admin/login" &&
+    pathname !== "/api/padlet/admin/logout";
   const isAdminPage =
     pathname.startsWith("/services/padlet/admin") &&
     pathname !== "/services/padlet/admin/login";
