@@ -197,3 +197,92 @@ enum SessionStage {
   A6_DONE
   COMPLETED
 }
+
+// ─────────────────────────────────────────────────────────
+// 포스트잇 협업 보드 (Padlet-style)
+// ─────────────────────────────────────────────────────────
+
+model PadletBoard {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  title       String
+  description String?       @db.Text
+  bgColor     String        @default("#FAFAFA")
+  isArchived  Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  posts       PadletPost[]
+
+  @@index([isArchived, createdAt])
+}
+
+model PadletPost {
+  id          String              @id @default(cuid())
+  boardId     String
+  board       PadletBoard         @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  nickname    String
+  sessionId   String
+  contentText String?             @db.Text
+  posX        Int                 @default(0)
+  posY        Int                 @default(0)
+  width       Int                 @default(240)
+  height      Int                 @default(200)
+  color       String              @default("#FFF59D")
+  zIndex      Int                 @default(0)
+
+  attachments PadletAttachment[]
+  reactions   PadletReaction[]
+  comments    PadletComment[]
+
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([boardId, createdAt(sort: Desc)])
+  @@index([sessionId])
+}
+
+model PadletAttachment {
+  id        String     @id @default(cuid())
+  postId    String
+  post      PadletPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  type      String     // 'image' | 'file' | 'embed'
+  url       String
+  filename  String?
+  fileSize  Int?
+  mimeType  String?
+  embedMeta Json?
+
+  createdAt DateTime   @default(now())
+
+  @@index([postId])
+}
+
+model PadletReaction {
+  id        String     @id @default(cuid())
+  postId    String
+  post      PadletPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  sessionId String
+  emoji     String
+
+  createdAt DateTime   @default(now())
+
+  @@unique([postId, sessionId, emoji])
+  @@index([postId])
+}
+
+model PadletComment {
+  id        String     @id @default(cuid())
+  postId    String
+  post      PadletPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  nickname  String
+  sessionId String
+  content   String     @db.Text
+
+  createdAt DateTime   @default(now())
+
+  @@index([postId, createdAt])
+}

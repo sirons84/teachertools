@@ -50,6 +50,16 @@ export const SERVICES: ServiceItem[] = [
     color: "indigo",
   },
   {
+    id: "padlet",
+    title: "포스트잇 협업 보드",
+    description:
+      "교사가 주제별 보드를 만들고, 학생/학부모가 닉네임만 입력해 텍스트·이미지·파일·링크를 포스트잇처럼 올리고 댓글·이모지로 반응합니다.",
+    icon: "📌",
+    href: "/services/padlet",
+    status: "active",
+    color: "teal",
+  },
+  {
     id: "report-helper",
     title: "생활기록부 도우미",
     description: "AI가 학생 특성에 맞는 생활기록부 문구를 추천합니다.",
