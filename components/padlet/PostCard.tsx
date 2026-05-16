@@ -99,10 +99,10 @@ export default function PostCard({
       onMouseDown={() => onTopZ?.(post.id)}
     >
       <div
-        className="rounded-lg shadow-md hover:shadow-lg transition-shadow"
+        className="rounded-lg shadow-md hover:shadow-lg transition-[box-shadow,width]"
         style={{
           background: post.color,
-          width: post.width,
+          width: showComments ? Math.max(post.width, 300) : post.width,
         }}
       >
         {/* 헤더: 드래그 핸들 */}
