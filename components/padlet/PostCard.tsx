@@ -219,18 +219,26 @@ export default function PostCard({
         >
           💬 {commentCount}개 {showComments ? "닫기" : "보기"}
         </button>
-
-        {showComments && (
-          <div className="px-2 pb-2" onMouseDown={(e) => e.stopPropagation()}>
-            <CommentList
-              postId={post.id}
-              mySessionId={mySessionId}
-              myNickname={myNickname}
-              onCountChange={(n) => setCommentCount(n)}
-            />
-          </div>
-        )}
       </div>
+
+      {/* 댓글 패널: 카드 폭보다 넓게 — 좁은 카드에서 form이 잘리는 것 방지 */}
+      {showComments && (
+        <div
+          className="mt-1.5 rounded-lg shadow-md p-3 relative z-20"
+          style={{
+            background: post.color,
+            width: Math.max(post.width, 300),
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <CommentList
+            postId={post.id}
+            mySessionId={mySessionId}
+            myNickname={myNickname}
+            onCountChange={(n) => setCommentCount(n)}
+          />
+        </div>
+      )}
     </article>
   );
 }

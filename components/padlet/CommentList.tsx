@@ -75,27 +75,27 @@ export default function CommentList({
   };
 
   return (
-    <div className="space-y-2">
-      <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+    <div className="space-y-2.5">
+      <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
         {loading ? (
-          <p className="text-xs text-gray-400">불러오는 중...</p>
+          <p className="text-sm text-gray-500">불러오는 중...</p>
         ) : items.length === 0 ? (
-          <p className="text-xs text-gray-400">아직 댓글이 없습니다.</p>
+          <p className="text-sm text-gray-500">아직 댓글이 없습니다.</p>
         ) : (
           items.map((c) => (
             <div
               key={c.id}
-              className="bg-white/80 rounded-lg px-2 py-1.5 text-xs flex items-start gap-1"
+              className="bg-white/85 rounded-lg px-2.5 py-2 text-sm flex items-start gap-1.5"
             >
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-gray-700 truncate">{c.nickname}</div>
-                <div className="text-gray-800 whitespace-pre-wrap break-words">{c.content}</div>
+                <div className="font-semibold text-gray-700 text-xs truncate">{c.nickname}</div>
+                <div className="text-gray-800 whitespace-pre-wrap break-words leading-snug">{c.content}</div>
               </div>
               {mySessionId === c.sessionId && (
                 <button
                   type="button"
                   onClick={() => remove(c.id)}
-                  className="text-gray-400 hover:text-red-600"
+                  className="text-gray-400 hover:text-red-600 text-sm leading-none mt-0.5"
                   aria-label="댓글 삭제"
                 >
                   ✕
@@ -106,28 +106,30 @@ export default function CommentList({
         )}
       </div>
 
-      <form onSubmit={submit} className="flex gap-1.5">
+      <form onSubmit={submit} className="space-y-1.5">
         <input
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
           placeholder="닉네임"
           maxLength={20}
-          className="w-20 rounded-md border border-white/80 bg-white/80 px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
+          className="w-full rounded-md border border-white/80 bg-white/85 px-2.5 py-1.5 text-sm focus:outline-none focus:border-blue-400"
         />
-        <input
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="댓글을 남겨주세요"
-          maxLength={500}
-          className="flex-1 rounded-md border border-white/80 bg-white/80 px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
-        />
-        <button
-          type="submit"
-          disabled={submitting || content.trim().length === 0}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white px-2.5 py-1 rounded-md text-xs font-semibold"
-        >
-          등록
-        </button>
+        <div className="flex gap-1.5">
+          <input
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="댓글을 남겨주세요"
+            maxLength={500}
+            className="flex-1 min-w-0 rounded-md border border-white/80 bg-white/85 px-2.5 py-1.5 text-sm focus:outline-none focus:border-blue-400"
+          />
+          <button
+            type="submit"
+            disabled={submitting || content.trim().length === 0}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white px-3 py-1.5 rounded-md text-sm font-semibold shrink-0"
+          >
+            등록
+          </button>
+        </div>
       </form>
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
