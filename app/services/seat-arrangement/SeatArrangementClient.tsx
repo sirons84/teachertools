@@ -514,8 +514,33 @@ export default function SeatArrangementClient() {
 
       {/* 모둠 합계 */}
       {arrangement && (
-        <div className="print:hidden mt-4 text-xs text-gray-500 text-center">
-          배치 점수: {arrangement.score} · 드래그 앤 드롭으로 두 학생을 맞바꿀 수 있습니다.
+        <div className="print:hidden mt-4 text-xs text-gray-500 text-center space-y-1">
+          {(() => {
+            // 현재 배치에서 모둠별 rank 합 계산
+            const sums: number[] = [];
+            const seen = new Map<number, number[]>();
+            for (const seat of arrangement.seats) {
+              if (seat.studentId == null) continue;
+              const gid = arrangement.groupOfSeat.get(`${seat.row},${seat.col}`);
+              if (gid == null) continue;
+              const s = studentMap.get(seat.studentId);
+              if (!s) continue;
+              const arr = seen.get(gid) ?? [];
+              arr.push(s.rank);
+              seen.set(gid, arr);
+            }
+            const sorted = Array.from(seen.entries()).sort((a, b) => a[0] - b[0]);
+            for (const [, ranks] of sorted) sums.push(ranks.reduce((a, b) => a + b, 0));
+            const spread = sums.length ? Math.max(...sums) - Math.min(...sums) : 0;
+            return (
+              <>
+                <div>
+                  모둠별 성적 합: [{sums.join(", ")}] · 편차 {spread} · 배치 점수 {arrangement.score}
+                </div>
+                <div>드래그 앤 드롭으로 두 학생을 맞바꿀 수 있습니다.</div>
+              </>
+            );
+          })()}
         </div>
       )}
 

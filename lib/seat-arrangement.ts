@@ -61,25 +61,63 @@ function seatKey(row: number, col: number) {
 }
 
 /**
- * 4인 1조 성적 균형 모둠 구성.
- * - 남학생/여학생을 각각 rank 오름차순 정렬
- * - 각 모둠: [남 상위 i, 남 하위 i, 여 상위 i, 여 하위 i]
- *   → 6개 모둠의 성적 합 격차 최소화
+ * 4인 1조 성적 균형 모둠 후보 풀 생성.
+ * - 매번 다른 쌍이 나오도록 랜덤 파티셔닝
+ * - 6개 모둠의 성적(rank) 합 편차(max-min)가 최소에 가까운 후보들만 풀로 채택
+ * - 각 모둠 내부는 [남 상위, 남 하위, 여 상위, 여 하위] 순으로 정렬 → 지그재그 호환
+ *
+ * @param tolerance min_spread + tolerance 이내인 후보만 풀에 포함 (기본 2)
+ * @param samples   랜덤 샘플 시도 횟수
+ * @param maxPool   풀 최대 크기
  */
-export function formBalancedGroups(students: Student[]): Student[][] {
-  const boys = students.filter((s) => s.gender === "남").sort((a, b) => a.rank - b.rank);
-  const girls = students.filter((s) => s.gender === "여").sort((a, b) => a.rank - b.rank);
+export function generateBalancedGroupPool(
+  students: Student[],
+  opts: { samples?: number; tolerance?: number; maxPool?: number } = {}
+): Student[][][] {
+  const samples = opts.samples ?? 3000;
+  const tolerance = opts.tolerance ?? 2;
+  const maxPool = opts.maxPool ?? 400;
+
+  const boys = students.filter((s) => s.gender === "남");
+  const girls = students.filter((s) => s.gender === "여");
   const groupCount = Math.min(Math.floor(boys.length / 2), Math.floor(girls.length / 2));
-  const groups: Student[][] = [];
-  for (let i = 0; i < groupCount; i++) {
-    groups.push([
-      boys[i],
-      boys[boys.length - 1 - i],
-      girls[i],
-      girls[girls.length - 1 - i],
-    ]);
+  if (groupCount === 0) return [];
+
+  type Sample = { groups: Student[][]; spread: number };
+  const all: Sample[] = [];
+
+  for (let t = 0; t < samples; t++) {
+    const sb = shuffle(boys);
+    const sg = shuffle(girls);
+    const groups: Student[][] = [];
+    let minSum = Infinity;
+    let maxSum = -Infinity;
+    for (let g = 0; g < groupCount; g++) {
+      const b1 = sb[g * 2];
+      const b2 = sb[g * 2 + 1];
+      const g1 = sg[g * 2];
+      const g2 = sg[g * 2 + 1];
+      const bTop = b1.rank <= b2.rank ? b1 : b2;
+      const bBot = b1.rank <= b2.rank ? b2 : b1;
+      const gTop = g1.rank <= g2.rank ? g1 : g2;
+      const gBot = g1.rank <= g2.rank ? g2 : g1;
+      groups.push([bTop, bBot, gTop, gBot]);
+      const sum = b1.rank + b2.rank + g1.rank + g2.rank;
+      if (sum < minSum) minSum = sum;
+      if (sum > maxSum) maxSum = sum;
+    }
+    all.push({ groups, spread: maxSum - minSum });
   }
-  return groups;
+
+  all.sort((a, b) => a.spread - b.spread);
+  const minSpread = all[0].spread;
+  const accepted = all.filter((s) => s.spread <= minSpread + tolerance);
+  return accepted.slice(0, maxPool).map((s) => s.groups);
+}
+
+/** 모둠별 rank 합 — 디버깅/표시용 */
+export function groupRankSums(groups: Student[][]): number[] {
+  return groups.map((g) => g.reduce((acc, s) => acc + s.rank, 0));
 }
 
 /**
@@ -298,14 +336,24 @@ export function arrangeSeats(
   options: ArrangeOptions
 ): Arrangement {
   const layout = deriveLayout(options.rows, options.cols);
-  const groups = formBalancedGroups(students);
   const noteIds = new Set(students.filter(isAttentionStudent).map((s) => s.id));
-  const attempts = options.attempts ?? 600;
+  const attempts = options.attempts ?? 800;
+
+  // 매번 다른 짝이 나오도록 균형 잡힌 모둠 후보 풀을 새로 생성
+  const pool = generateBalancedGroupPool(students, {
+    samples: 3000,
+    tolerance: 2,
+    maxPool: 400,
+  });
+  if (!pool.length) {
+    return { seats: [], groupOfSeat: new Map(), score: 0 };
+  }
 
   let best: Arrangement | null = null;
 
   for (let t = 0; t < attempts; t++) {
-    const ordered = orderGroups(groups, layout, options.noteFrontPriority);
+    const baseGroups = pool[Math.floor(Math.random() * pool.length)];
+    const ordered = orderGroups(baseGroups, layout, options.noteFrontPriority);
     const variants = ordered.map(() => Math.floor(Math.random() * 8));
     const arr = buildArrangement(students, ordered, variants, layout);
     arr.score = evaluate(arr, layout, options.constraints, noteIds, options.noteFrontPriority);
