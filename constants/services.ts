@@ -60,6 +60,16 @@ export const SERVICES: ServiceItem[] = [
     color: "teal",
   },
   {
+    id: "seat-arrangement",
+    title: "스마트 자리 배치",
+    description:
+      "성적·성별·특이사항을 고려해 4인 1조 균형 모둠을 자동 배치합니다. 드래그 앤 드롭으로 손쉽게 수정하고, 자연어로 추가 요청사항을 입력하면 AI가 해석해 반영합니다.",
+    icon: "🪑",
+    href: "/services/seat-arrangement",
+    status: "active",
+    color: "indigo",
+  },
+  {
     id: "report-helper",
     title: "생활기록부 도우미",
     description: "AI가 학생 특성에 맞는 생활기록부 문구를 추천합니다.",
