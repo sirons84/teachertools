@@ -73,3 +73,18 @@ CREATE EXTENSION IF NOT EXISTS vector;
 - 관리자 인증 경로 보호는 `proxy.ts` (Next.js 16에서 `middleware`는 deprecated → `proxy` 권장)
 - 의존성: `@dnd-kit/core`, `@dnd-kit/utilities`, `swr`, `nanoid`
 - 새 의존성 또는 권한 변경 시: 환경변수에 `PADLET_ADMIN_PASSWORD`, `AUTH_SECRET` 필요
+
+## 음성 누가기록 (nuga)
+- 진입점: `/services/nuga` — 교사 1인용, 로그인 없음
+- 흐름: 마이크 버튼 → 녹음(최대 15초) → `POST /api/nuga/transcribe` → 번호 파싱 → **확인 카드(생략 불가)** → 저장
+- 저장소: **DB 없음**. `localStorage`의 `nuga.roster.v1`(명단) / `nuga.records.v1`(기록)만 사용
+  - `lib/nuga-store.ts` — `useSyncExternalStore` 기반 (effect 안 setState 금지 룰 `react-hooks/set-state-in-effect` 대응)
+  - `lib/nuga.ts` — 번호 파싱(숫자/한자어/고유어 수사), 명단 파싱, CSV, 로컬 날짜
+- STT: `gpt-4o-mini-transcribe` (실패 시 `whisper-1` 폴백), `language: "ko"` + 교실 어휘 prompt 힌트
+- 개인정보 원칙(반드시 유지):
+  1. 교사는 **번호만** 말한다 → OpenAI로 나가는 것은 음성뿐, 학생 이름은 전송되지 않음
+  2. 명단을 코드에 하드코딩하지 않는다 (앱의 「명단 등록」 화면에서 교사가 입력)
+  3. 서버는 텍스트를 저장하지도 로그에 남기지도 않는다
+  4. 「전체 기록 삭제」 버튼을 전체 보기 탭 하단 설정에 유지
+- 번호 파싱 실패 시 **추측 금지** — 번호를 비운 채 확인 카드를 연다
+- 기기 교체 시 기록이 사라지므로 CSV 내보내기(번호,이름,날짜,내용)는 필수 안전장치

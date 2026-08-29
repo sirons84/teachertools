@@ -70,6 +70,16 @@ export const SERVICES: ServiceItem[] = [
     color: "indigo",
   },
   {
+    id: "nuga",
+    title: "음성 누가기록",
+    description:
+      "수업 중 “7번, 친구 의견을 먼저 정리해 줌”이라고 말하면 해당 학생 칸에 오늘 날짜와 함께 기록이 쌓입니다. 번호는 자동 인식, 저장 전 수정 가능, CSV 내보내기까지.",
+    icon: "🎙️",
+    href: "/services/nuga",
+    status: "active",
+    color: "rose",
+  },
+  {
     id: "report-helper",
     title: "생활기록부 도우미",
     description: "AI가 학생 특성에 맞는 생활기록부 문구를 추천합니다.",

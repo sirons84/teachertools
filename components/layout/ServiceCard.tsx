@@ -7,6 +7,8 @@ const COLOR_MAP: Record<string, { card: string; btn: string }> = {
   purple: { card: "border-purple-200 hover:border-purple-400 hover:shadow-purple-100", btn: "bg-purple-600 hover:bg-purple-700 text-white" },
   orange: { card: "border-orange-200", btn: "" },
   teal:   { card: "border-teal-200 hover:border-teal-400 hover:shadow-teal-100",   btn: "bg-teal-600 hover:bg-teal-700 text-white" },
+  rose:   { card: "border-rose-200 hover:border-rose-400 hover:shadow-rose-100",   btn: "bg-rose-600 hover:bg-rose-700 text-white" },
+  indigo: { card: "border-indigo-200 hover:border-indigo-400 hover:shadow-indigo-100", btn: "bg-indigo-600 hover:bg-indigo-700 text-white" },
 };
 
 interface Props {
