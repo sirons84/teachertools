@@ -42,7 +42,28 @@ export function normalizePart3(text: string, before = ""): string {
 }
 
 /**
- * PART3: accept 정규식 중 하나라도 맞으면 "ok", 아니면 "needs-check".
+ * 과거 시제인지 — ㅆ 받침 음절이 있는지 본다 ("쳤다", "봤다", "풀었다", "망쳤다" …).
+ * "있다"(현재), "~겠다"(미래)는 ㅆ 받침이어도 과거가 아니므로 뺀다.
+ * 낱말을 하나하나 적는 대신 호응 표지를 보는 것이라, 학생이 어떤 서술어를 쓰든 판정된다.
+ */
+export function hasPastTense(text: string): boolean {
+  for (const ch of text) {
+    const code = ch.charCodeAt(0) - 0xac00;
+    if (code < 0 || code > 11171) continue; // 한글 음절이 아님
+    if (code % 28 === 20 && ch !== "있" && ch !== "겠") return true;
+  }
+  return false;
+}
+
+/** accept 에 정규식 대신 쓸 수 있는 이름 붙은 검사 (정규식으로 쓰기 어려운 것만) */
+const NAMED_CHECKS: Record<string, (text: string) => boolean> = {
+  "@과거": hasPastTense,
+};
+
+/**
+ * PART3: accept 중 하나라도 맞으면 "ok", 아니면 "needs-check".
+ * accept 항목은 정규식이거나 "@과거" 같은 이름 붙은 검사.
+ * 특정 낱말이 아니라 호응 표지(과거·높임·부정 …)를 본다 — 빈칸에 올 수 있는 서술어는 여러 가지이므로.
  * needs-check 는 오답이 아니라 "앱이 모르겠다"는 뜻 — 느슨하게 두고 교사가 본다.
  */
 export function judgePart3(
@@ -52,6 +73,10 @@ export function judgePart3(
   const t = normalizePart3(text, item.before);
   if (!t) return "needs-check";
   for (const pattern of item.accept) {
+    if (pattern.startsWith("@")) {
+      if (NAMED_CHECKS[pattern]?.(t)) return "ok";
+      continue;
+    }
     try {
       if (new RegExp(pattern).test(t)) return "ok";
     } catch {

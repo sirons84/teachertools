@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import JoinQr from "@/components/hoeung/JoinQr";
+import JoinQr, { displayUrl, useJoinUrl } from "@/components/hoeung/JoinQr";
 import type { TvData } from "@/lib/hoeung/dashboard";
 
 async function fetcher(url: string): Promise<TvData> {
@@ -16,6 +16,8 @@ export default function TvClient({ code }: { code: string }) {
     refreshInterval: 10_000,
     revalidateOnFocus: true,
   });
+  // 받아 적기 쉽게 방 코드(?code=)는 빼고 보여 준다 — 코드는 옆에 크게 있다
+  const joinAddress = displayUrl(useJoinUrl(code)).split("?")[0];
 
   return (
     <div className="flex min-h-screen flex-col bg-white px-[4vw] py-[3vh] text-gray-900">
@@ -25,6 +27,10 @@ export default function TvClient({ code }: { code: string }) {
           <p className="mt-1 text-[1.8vw] text-gray-500">
             {data ? `${data.studentCount}명이 함께 풀고 있어요` : "불러오는 중…"}
             {data && data.finishedCount > 0 ? ` · 끝까지 한 친구 ${data.finishedCount}명` : ""}
+          </p>
+          <p className="mt-[1vh] text-[1.8vw] text-gray-500">
+            들어오는 주소{" "}
+            <span className="font-mono font-semibold text-gray-900">{joinAddress}</span>
           </p>
         </div>
         <div className="flex items-center gap-[2vw]">

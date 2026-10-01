@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import JoinQr from "@/components/hoeung/JoinQr";
+import JoinQr, { displayUrl, useJoinUrl } from "@/components/hoeung/JoinQr";
 import StudentDetail from "@/components/hoeung/StudentDetail";
 import StudentRow from "@/components/hoeung/StudentRow";
 import type { DashboardData } from "@/lib/hoeung/dashboard";
@@ -42,7 +42,8 @@ export default function DashboardClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // null = 자동 (학생이 아직 없으면 펼침)
   const [joinOpen, setJoinOpen] = useState<boolean | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"teacher" | "join" | null>(null);
+  const joinUrl = useJoinUrl(code);
   const [deleting, setDeleting] = useState(false);
 
   // SWR 3초 폴링 (padlet BoardClient 와 같은 패턴)
@@ -84,15 +85,17 @@ export default function DashboardClient({
   const showJoin = joinOpen ?? students.length === 0;
   const keyQuery = `?k=${encodeURIComponent(teacherKey)}`;
 
-  const copyTeacherUrl = async () => {
+  const copy = async (which: "teacher" | "join") => {
+    const text =
+      which === "join"
+        ? joinUrl
+        : `${window.location.origin}/services/hoeung/teacher/${code}${keyQuery}`;
     try {
-      await navigator.clipboard.writeText(
-        `${window.location.origin}/services/hoeung/teacher/${code}${keyQuery}`
-      );
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(text);
+      setCopied(which);
+      setTimeout(() => setCopied(null), 2000);
     } catch {
-      // 클립보드를 못 쓰는 환경 — 무시
+      // 클립보드를 못 쓰는 환경 — 주소는 화면에 보이므로 직접 복사할 수 있다
     }
   };
 
@@ -142,8 +145,8 @@ export default function DashboardClient({
           <a href={`${api}/export.csv${keyQuery}`} className={buttonClass}>
             CSV 내보내기
           </a>
-          <button type="button" onClick={copyTeacherUrl} className={buttonClass}>
-            {copied ? "복사됨 ✓" : "교사용 주소 복사"}
+          <button type="button" onClick={() => copy("teacher")} className={buttonClass}>
+            {copied === "teacher" ? "복사됨 ✓" : "교사용 주소 복사"}
           </button>
           <button
             type="button"
@@ -161,11 +164,24 @@ export default function DashboardClient({
         <div className="mt-4 flex flex-wrap items-center justify-center gap-8 rounded-2xl border border-gray-200 bg-white p-6">
           <JoinQr code={code} size={200} />
           <div className="text-center">
-            <p className="text-sm text-gray-500">QR을 찍거나, 입장 화면에서 방 코드를 써요</p>
+            <p className="text-sm text-gray-500">QR을 찍거나, 아래 주소로 들어와요</p>
             <p className="mt-1 font-mono text-7xl font-bold tracking-[0.2em] text-gray-900">
               {code}
             </p>
-            <p className="mt-2 text-sm text-gray-400">티처툴즈 → 문장 호응 체크</p>
+            {/* 학생 입장 주소 — 방 코드가 미리 채워져 열린다 */}
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <a
+                href={joinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="select-all break-all rounded-lg bg-gray-50 px-3 py-2 font-mono text-sm text-gray-800 underline-offset-2 hover:underline"
+              >
+                {displayUrl(joinUrl)}
+              </a>
+              <button type="button" onClick={() => copy("join")} className={buttonClass}>
+                {copied === "join" ? "복사됨 ✓" : "학생 주소 복사"}
+              </button>
+            </div>
           </div>
         </div>
       )}

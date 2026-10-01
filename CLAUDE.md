@@ -95,6 +95,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 - 교사: `/services/hoeung/teacher` (방 만들기) → `/services/hoeung/teacher/[code]` (대시보드) → `.../tv` (익명 TV 화면)
 - 문항: `data/hoeung-items.json` **에만** 둔다 (DB에 넣지 않음, 수정 후 배포). accept 정규식을 고치면 `node scripts/test-hoeung-judge.mjs` 로 확인
 - AI 호출 없음. 판정은 클라이언트(`lib/hoeung/judge.ts`), 서버는 저장만
+- PART3 accept 는 **특정 낱말이 아니라 호응 표지**(과거·높임·부정)를 적는다 — 빈칸에 올 서술어는 여러 가지("드신다"도 "시켜 주셨다"도 정답). 정규식으로 어려운 과거 시제는 `"@과거"`(ㅆ 받침 검사)를 쓴다
 - 개인정보 원칙(반드시 유지): **이름은 서버로 보내지 않는다** — `localStorage`(`hoeung.session.v1`)에만 두고 DB에는 번호만 저장
 - 오프라인 내성: 모든 입력은 `localStorage`에 먼저 쓰고 `lib/hoeung/store.ts`의 전송 큐(`hoeung.queue.v1`)로 순서대로 보낸다. 실패하면 5초 뒤·`online` 복귀 때 재전송. 큐를 다시 보내도 안전하도록 `tries`는 클라이언트 값을 그대로 저장
 - 교사 인증: 로그인 없음. 방마다 `teacherKey`, `?k=`로 한 번 들어오면 `hoeung_k_[code]` 쿠키(httpOnly)에 저장
