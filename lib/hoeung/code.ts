@@ -25,6 +25,19 @@ export function isValidRoomCode(value: string): boolean {
   return true;
 }
 
+export const MAX_NAME_LENGTH = 10;
+
+/** 이름 정리: 제어 문자 제거, 공백 정리, 길이 제한 */
+export function normalizeName(value: unknown): string {
+  if (typeof value !== "string") return "";
+  let cleaned = "";
+  for (const ch of value) {
+    const code = ch.charCodeAt(0);
+    cleaned += code < 0x20 || code === 0x7f ? " " : ch;
+  }
+  return cleaned.replace(/\s+/g, " ").trim().slice(0, MAX_NAME_LENGTH);
+}
+
 export const MIN_NUMBER = 1;
 export const MAX_NUMBER = 40;
 

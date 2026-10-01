@@ -96,7 +96,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 - 문항: `data/hoeung-items.json` **에만** 둔다 (DB에 넣지 않음, 수정 후 배포). accept 정규식을 고치면 `node scripts/test-hoeung-judge.mjs` 로 확인
 - AI 호출 없음. 판정은 클라이언트(`lib/hoeung/judge.ts`), 서버는 저장만
 - PART3 accept 는 **특정 낱말이 아니라 호응 표지**(과거·높임·부정)를 적는다 — 빈칸에 올 서술어는 여러 가지("드신다"도 "시켜 주셨다"도 정답). 정규식으로 어려운 과거 시제는 `"@과거"`(ㅆ 받침 검사)를 쓴다
-- 개인정보 원칙(반드시 유지): **이름은 서버로 보내지 않는다** — `localStorage`(`hoeung.session.v1`)에만 두고 DB에는 번호만 저장
+- 개인정보 원칙(반드시 유지): 번호와 이름은 서버에 저장하되 **교사 대시보드·CSV 식별용으로만** 쓴다. TV 화면(`/tv` API 포함)에는 번호·이름을 절대 내보내지 않고, 입장(join) 응답으로도 이름을 돌려주지 않는다. 「방 닫기」 시 학생 데이터 전부 삭제
+- 같은 방·번호로 다시 들어오면 어느 기기든 경고 없이 이어서 풀기 (이름은 최신 값으로 갱신)
 - 오프라인 내성: 모든 입력은 `localStorage`에 먼저 쓰고 `lib/hoeung/store.ts`의 전송 큐(`hoeung.queue.v1`)로 순서대로 보낸다. 실패하면 5초 뒤·`online` 복귀 때 재전송. 큐를 다시 보내도 안전하도록 `tries`는 클라이언트 값을 그대로 저장
 - 교사 인증: 로그인 없음. 방마다 `teacherKey`, `?k=`로 한 번 들어오면 `hoeung_k_[code]` 쿠키(httpOnly)에 저장
 - 뱃지(`lib/hoeung/badge.ts`, 우선순위 순): STUCK(같은 문항 120초+, 신호 있을 때만) → WRONG2(정답 본 문항 미확인) → CHECK(PART3 확인 필요 미확인) → IDLE(60초 신호 없음)

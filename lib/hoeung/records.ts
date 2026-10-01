@@ -13,6 +13,7 @@ export async function loadStudentRecords(roomId: string): Promise<StudentRecord[
     select: {
       id: true,
       number: true,
+      name: true,
       currentItemId: true,
       currentItemSince: true,
       lastActiveAt: true,

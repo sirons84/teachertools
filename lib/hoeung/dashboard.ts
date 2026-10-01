@@ -19,6 +19,7 @@ import {
 export interface StudentRecord {
   id: string;
   number: number;
+  name: string;
   currentItemId: string | null;
   currentItemSince: Date;
   lastActiveAt: Date;
@@ -46,6 +47,8 @@ export interface DashAttempt {
 export interface DashStudent {
   id: string;
   number: number;
+  /** 입장할 때 쓴 이름 (예전 방의 기록에는 비어 있을 수 있다) */
+  name: string;
   badge: Badge;
   currentItemId: string | null;
   /** 현재 문항에서 흐른 시간(초). 현재 문항이 없으면 null */
@@ -131,6 +134,7 @@ export function buildDashboardStudents(records: StudentRecord[], now: number): D
     return {
       id: s.id,
       number: s.number,
+      name: s.name,
       badge: computeBadge(badgeInput),
       currentItemId: badgeInput.currentItemId,
       secondsOnItem: onItem === null ? null : Math.floor(onItem / 1000),
@@ -197,7 +201,7 @@ export function buildSummary(records: StudentRecord[]): DashSummary {
   };
 }
 
-/** TV 화면용 — 번호·답 없이 반 전체 숫자만 */
+/** TV 화면용 — 번호·이름·답 없이 반 전체 숫자만 (익명) */
 export function buildTv(
   room: { code: string; title: string },
   records: StudentRecord[],

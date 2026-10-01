@@ -36,7 +36,9 @@ export default function StudentDetail({ student, onClose }: Props) {
     <div className="rounded-2xl border border-gray-200 bg-white">
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">{student.number}번</h2>
+          <h2 className="text-xl font-bold text-gray-900">
+            {student.number}번{student.name ? ` ${student.name}` : ""}
+          </h2>
           <p className="text-sm text-gray-500">
             {meta.emoji} {meta.label}
             {meta.hint ? ` — ${meta.hint}` : ""}

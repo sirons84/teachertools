@@ -307,7 +307,8 @@ model HoeungStudent {
   id               String          @id @default(cuid())
   roomId           String
   room             HoeungRoom      @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  number           Int // 번호만. 이름 저장 금지
+  number           Int
+  name             String          @default("") // 입장 시 입력. 교사 대시보드 식별용 — TV 화면에는 노출 금지, 방 삭제 시 함께 삭제
   currentItemId    String?
   currentItemSince DateTime        @default(now()) // 현재 문항에 들어온 시각 (STUCK 판정용)
   lastActiveAt     DateTime        @default(now()) // 마지막 heartbeat/제출 (IDLE 판정용)

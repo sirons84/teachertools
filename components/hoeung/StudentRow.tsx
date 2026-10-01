@@ -57,7 +57,7 @@ export default function StudentRow({ student, selected, onSelect }: Props) {
           {meta.label}
         </span>
       </td>
-      <td className="px-2 py-2">
+      <td className="whitespace-nowrap px-2 py-2">
         <button
           type="button"
           onClick={(e) => {
@@ -67,6 +67,7 @@ export default function StudentRow({ student, selected, onSelect }: Props) {
           className={`text-lg font-bold tabular-nums ${calm ? "text-gray-500" : "text-gray-900"}`}
         >
           {student.number}번
+          {student.name && <span className="ml-1.5 font-semibold">{student.name}</span>}
         </button>
       </td>
       {PARTS.map((p) => (

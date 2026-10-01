@@ -4,13 +4,20 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   CODE_LENGTH,
+  MAX_NAME_LENGTH,
   MAX_NUMBER,
   MIN_NUMBER,
   isValidNumber,
   isValidRoomCode,
+  normalizeName,
   normalizeRoomCode,
 } from "@/lib/hoeung/code";
-import { startSession, useHoeungState, type LocalAttempt } from "@/lib/hoeung/store";
+import {
+  leaveSession,
+  startSession,
+  useHoeungState,
+  type LocalAttempt,
+} from "@/lib/hoeung/store";
 
 const PLAY_PATH = "/services/hoeung/play";
 
@@ -18,6 +25,15 @@ interface JoinResponse {
   studentId: string;
   currentItemId: string | null;
   attempts: LocalAttempt[];
+}
+
+/** 번호와 이름을 보내 학생을 만들거나 복원한다 (이름은 교사 대시보드에서 학생을 알아보는 데 쓴다) */
+function postJoin(code: string, number: number, name: string): Promise<Response> {
+  return fetch(`/api/hoeung/rooms/${encodeURIComponent(code)}/join`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ number, name }),
+  });
 }
 
 export default function EntryClient({ initialCode }: { initialCode: string }) {
@@ -34,7 +50,7 @@ export default function EntryClient({ initialCode }: { initialCode: string }) {
     if (busy) return;
     const roomCode = normalizeRoomCode(code);
     const number = Number(numberText);
-    const trimmedName = name.trim();
+    const trimmedName = normalizeName(name);
     if (!isValidRoomCode(roomCode)) {
       setError(`방 코드 ${CODE_LENGTH}자리를 다시 확인해 주세요.`);
       return;
@@ -51,12 +67,7 @@ export default function EntryClient({ initialCode }: { initialCode: string }) {
     setBusy(true);
     setError(null);
     try {
-      // 서버로는 번호만 보낸다. 이름은 이 기기에만 남는다
-      const res = await fetch(`/api/hoeung/rooms/${encodeURIComponent(roomCode)}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ number }),
-      });
+      const res = await postJoin(roomCode, number, trimmedName);
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
         setError(data?.error ?? "들어가지 못했어요. 다시 눌러 주세요.");
@@ -70,6 +81,32 @@ export default function EntryClient({ initialCode }: { initialCode: string }) {
     } finally {
       setBusy(false);
     }
+  };
+
+  // 이어서 풀기: 서버 기록을 다시 받아 합치고 이름도 맞춘다. 인터넷이 안 되면 이 기기의 기록으로 계속
+  const resume = async () => {
+    if (busy || !session) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await postJoin(session.code, session.number, session.name);
+      if (res.ok) {
+        const joined = (await res.json()) as JoinResponse;
+        startSession(
+          { code: session.code, number: session.number, name: session.name },
+          joined
+        );
+      } else if (res.status === 404 || res.status === 410) {
+        leaveSession();
+        setError("이 방은 닫혔어요. 새 방 코드를 써 주세요.");
+        return;
+      }
+    } catch {
+      // 오프라인 — 그대로 이어서 푼다
+    } finally {
+      setBusy(false);
+    }
+    router.push(PLAY_PATH);
   };
 
   const inputClass =
@@ -87,8 +124,9 @@ export default function EntryClient({ initialCode }: { initialCode: string }) {
           </p>
           <button
             type="button"
-            onClick={() => router.push(PLAY_PATH)}
-            className="mt-3 min-h-14 w-full rounded-2xl bg-blue-500 px-6 text-xl font-bold text-white active:bg-blue-600"
+            onClick={resume}
+            disabled={busy}
+            className="mt-3 min-h-14 w-full rounded-2xl bg-blue-500 px-6 text-xl font-bold text-white active:bg-blue-600 disabled:bg-gray-300"
           >
             이어서 풀기 →
           </button>
@@ -128,7 +166,7 @@ export default function EntryClient({ initialCode }: { initialCode: string }) {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            maxLength={10}
+            maxLength={MAX_NAME_LENGTH}
             autoComplete="off"
             placeholder="내 이름"
             className={`${inputClass} placeholder:text-lg`}
@@ -149,7 +187,7 @@ export default function EntryClient({ initialCode }: { initialCode: string }) {
           {busy ? "들어가는 중…" : "시작하기"}
         </button>
         <p className="text-sm leading-relaxed text-gray-400">
-          🔒 이름은 이 패드에만 남고 서버로 보내지 않아요. 저장되는 것은 번호와 답뿐이에요.
+          🔒 번호와 이름, 답은 선생님 화면에만 보여요. 선생님이 방을 닫으면 모두 지워져요.
         </p>
       </form>
     </div>

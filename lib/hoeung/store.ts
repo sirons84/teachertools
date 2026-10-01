@@ -7,7 +7,7 @@
  * 전송이 실패하면 큐에 남겨 두었다가 온라인 복귀·주기 재시도 때 다시 보낸다.
  * → 패드 와이파이가 흔들려도 학생은 계속 풀 수 있다.
  *
- * 이름은 이 브라우저(localStorage)에만 둔다. 서버로 나가는 것은 번호뿐.
+ * 번호와 이름은 입장할 때 서버에도 저장된다 (교사 대시보드 식별용).
  */
 
 import { useSyncExternalStore } from "react";
@@ -22,7 +22,6 @@ const RETRY_MS = 5000;
 export interface HoeungSession {
   code: string;
   number: number;
-  /** 화면 표시용. 서버로 보내지 않는다 */
   name: string;
   studentId: string;
   currentItemId: string | null;

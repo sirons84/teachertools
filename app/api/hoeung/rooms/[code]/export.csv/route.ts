@@ -19,7 +19,7 @@ function csvCell(value: string | number): string {
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-/** 번호,PART,문항,답,상태,시도,확인 (교사 전용) */
+/** 번호,이름,PART,문항,답,상태,시도,확인 (교사 전용) */
 export async function GET(req: NextRequest, { params }: Ctx) {
   const { code } = await params;
   const auth = await getTeacherRoom(code, req.nextUrl.searchParams.get("k"));
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
   const order = new Map(ALL_ITEMS.map((it, i) => [it.id, i]));
   const records = await loadStudentRecords(auth.room.id);
 
-  const lines = [["번호", "PART", "문항", "답", "상태", "시도", "확인"].join(",")];
+  const lines = [["번호", "이름", "PART", "문항", "답", "상태", "시도", "확인"].join(",")];
   for (const s of records) {
     const attempts = [...s.attempts].sort(
       (a, b) => (order.get(a.itemId) ?? 999) - (order.get(b.itemId) ?? 999)
@@ -43,6 +43,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
       lines.push(
         [
           s.number,
+          s.name,
           a.part,
           item ? itemLabel(a.itemId) : a.itemId,
           item ? answerText(item, a.answer) : a.answer,
