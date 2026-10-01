@@ -80,6 +80,16 @@ export const SERVICES: ServiceItem[] = [
     color: "rose",
   },
   {
+    id: "hoeung",
+    title: "문장 호응 체크",
+    description:
+      "5학년 국어 「문장 성분의 호응 관계」 개별 학습. 학생은 패드로 틀린 곳 찾기 → 낱말 고르기 → 문장 고치기 → 문장 만들기를 풀고, 교사는 대시보드에서 지금 도움이 필요한 학생을 바로 찾아갑니다.",
+    icon: "✏️",
+    href: "/services/hoeung",
+    status: "active",
+    color: "amber",
+  },
+  {
     id: "report-helper",
     title: "생활기록부 도우미",
     description: "AI가 학생 특성에 맞는 생활기록부 문구를 추천합니다.",

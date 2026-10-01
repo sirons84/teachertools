@@ -286,3 +286,50 @@ model PadletComment {
 
   @@index([postId, createdAt])
 }
+
+// ─────────────────────────────────────────────────────────
+// 문장 호응 체크 (hoeung) — 문항은 data/hoeung-items.json, DB 에는 풀이 기록만
+// ─────────────────────────────────────────────────────────
+
+model HoeungRoom {
+  id         String          @id @default(cuid())
+  code       String          @unique // 4자리, 대문자
+  teacherKey String // nanoid(16)
+  title      String          @default("문장 호응 체크")
+  isClosed   Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  students   HoeungStudent[]
+
+  @@index([isClosed, createdAt])
+}
+
+model HoeungStudent {
+  id               String          @id @default(cuid())
+  roomId           String
+  room             HoeungRoom      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  number           Int // 번호만. 이름 저장 금지
+  currentItemId    String?
+  currentItemSince DateTime        @default(now()) // 현재 문항에 들어온 시각 (STUCK 판정용)
+  lastActiveAt     DateTime        @default(now()) // 마지막 heartbeat/제출 (IDLE 판정용)
+  createdAt        DateTime        @default(now())
+  attempts         HoeungAttempt[]
+
+  @@unique([roomId, number])
+}
+
+model HoeungAttempt {
+  id        String        @id @default(cuid())
+  studentId String
+  student   HoeungStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  itemId    String // data/hoeung-items.json 의 id (예: "p1-03")
+  part      Int // 1~4
+  answer    String        @db.Text // 학생 입력(인덱스 또는 텍스트)
+  status    String // "correct" | "wrong" | "revealed" | "ok" | "needs-check" | "submitted"
+  tries     Int           @default(1)
+  checked   Boolean       @default(false) // 「선생님과 확인했어요」
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([studentId, itemId]) // 문항당 한 행, 재시도는 upsert
+  @@index([studentId, part])
+}
